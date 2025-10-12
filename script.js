@@ -158,15 +158,6 @@ async function createFirebaseAdminUser() {
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize AOS (Animate On Scroll)
-    if (typeof AOS !== 'undefined') {
-        AOS.init({
-            duration: 1000,
-            once: true,
-            offset: 100
-        });
-    }
-    
     // Wait for Firebase to load
     const checkFirebase = setInterval(() => {
         if (window.firebase) {
@@ -288,215 +279,27 @@ async function saveToFirebase(dataType, data) {
 function initializeApp() {
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
-    const dateInput = document.getElementById('date');
-    if (dateInput) {
-        dateInput.setAttribute('min', today);
-    }
+    document.getElementById('date').setAttribute('min', today);
     
     // Check if user is logged in
     if (currentUser) {
         updateNavForLoggedInUser();
     }
-    
-    // Initialize smooth scrolling
-    initializeSmoothScrolling();
-    
-    // Initialize back to top button
-    initializeBackToTop();
-    
-    // Initialize mobile menu
-    initializeMobileMenu();
-    
-    // Initialize gallery
-    initializeGallery();
-}
-
-// Initialize smooth scrolling
-function initializeSmoothScrolling() {
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-}
-
-// Initialize back to top button
-function initializeBackToTop() {
-    const backToTopBtn = document.getElementById('back-to-top');
-    if (!backToTopBtn) return;
-    
-    window.addEventListener('scroll', function() {
-        if (window.pageYOffset > 300) {
-            backToTopBtn.classList.add('show');
-        } else {
-            backToTopBtn.classList.remove('show');
-        }
-    });
-}
-
-// Scroll to top function
-function scrollToTop() {
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-}
-
-// Initialize mobile menu
-function initializeMobileMenu() {
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    const mobileMenu = document.getElementById('mobile-menu');
-    
-    if (mobileMenuToggle && mobileMenu) {
-        mobileMenuToggle.addEventListener('click', function() {
-            mobileMenu.classList.toggle('active');
-            this.classList.toggle('active');
-        });
-    }
-}
-
-// Toggle mobile menu
-function toggleMobileMenu() {
-    const mobileMenu = document.getElementById('mobile-menu');
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    
-    if (mobileMenu && mobileMenuToggle) {
-        mobileMenu.classList.toggle('active');
-        mobileMenuToggle.classList.toggle('active');
-    }
-}
-
-// Close mobile menu
-function closeMobileMenu() {
-    const mobileMenu = document.getElementById('mobile-menu');
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    
-    if (mobileMenu && mobileMenuToggle) {
-        mobileMenu.classList.remove('active');
-        mobileMenuToggle.classList.remove('active');
-    }
-}
-
-// Initialize gallery
-function initializeGallery() {
-    const galleryItems = document.querySelectorAll('.gallery-item');
-    
-    galleryItems.forEach(item => {
-        item.addEventListener('click', function() {
-            const img = this.querySelector('img');
-            if (img) {
-                showImageModal(img.src, img.alt);
-            }
-        });
-    });
-}
-
-// Show image modal
-function showImageModal(src, alt) {
-    const modal = document.createElement('div');
-    modal.className = 'image-modal';
-    modal.innerHTML = `
-        <div class="image-modal-content">
-            <img src="${src}" alt="${alt}">
-            <button class="image-modal-close" onclick="closeImageModal()">&times;</button>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    modal.style.display = 'flex';
-    
-    // Close on background click
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeImageModal();
-        }
-    });
-}
-
-// Close image modal
-function closeImageModal() {
-    const modal = document.querySelector('.image-modal');
-    if (modal) {
-        modal.remove();
-    }
-}
-
-// Scroll to appointment section
-function scrollToAppointment() {
-    const appointmentSection = document.getElementById('appointment');
-    if (appointmentSection) {
-        appointmentSection.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
-    }
-}
-
-// Scroll to services section
-function scrollToServices() {
-    const servicesSection = document.getElementById('services');
-    if (servicesSection) {
-        servicesSection.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
-    }
-}
-
-// Select service function
-function selectService(serviceName) {
-    // Set the service category
-    const serviceCategoryInput = document.getElementById('service-category');
-    if (serviceCategoryInput) {
-        serviceCategoryInput.value = serviceName;
-    }
-    
-    // Scroll to appointment section
-    scrollToAppointment();
-    
-    // Show success message
-    showSuccessMessage(`${serviceName} hizmeti seçildi. Randevu formunu doldurun.`);
 }
 
 // Setup event listeners
 function setupEventListeners() {
     // Appointment form
-    const appointmentForm = document.getElementById('appointmentForm');
-    if (appointmentForm) {
-        appointmentForm.addEventListener('submit', handleAppointmentSubmit);
-    }
+    document.getElementById('appointmentForm').addEventListener('submit', handleAppointmentSubmit);
     
     // Phone appointment form
-    const phoneAppointmentForm = document.getElementById('phoneAppointmentForm');
-    if (phoneAppointmentForm) {
-        phoneAppointmentForm.addEventListener('submit', handlePhoneAppointmentSubmit);
-    }
+    document.getElementById('phoneAppointmentForm').addEventListener('submit', handlePhoneAppointmentSubmit);
     
     // Login form
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
     
     // Register form
-    const registerForm = document.getElementById('registerForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
-    }
-    
-    // Contact form
-    const contactForm = document.getElementById('contactForm');
-    if (contactForm) {
-        contactForm.addEventListener('submit', handleContactSubmit);
-    }
+    document.getElementById('registerForm').addEventListener('submit', handleRegister);
     
     // Service category cards
     document.querySelectorAll('.service-category-card').forEach(card => {
@@ -509,26 +312,12 @@ function setupEventListeners() {
     });
     
     // Customer name input for suggestions
-    const nameInput = document.getElementById('name');
-    if (nameInput) {
-        nameInput.addEventListener('input', handleCustomerNameInput);
-    }
-    
-    const phoneNameInput = document.getElementById('phoneName');
-    if (phoneNameInput) {
-        phoneNameInput.addEventListener('input', handlePhoneCustomerNameInput);
-    }
+    document.getElementById('name').addEventListener('input', handleCustomerNameInput);
+    document.getElementById('phoneName').addEventListener('input', handlePhoneCustomerNameInput);
     
     // Date change for time slots
-    const dateInput = document.getElementById('date');
-    if (dateInput) {
-        dateInput.addEventListener('change', handleDateChange);
-    }
-    
-    const phoneDateInput = document.getElementById('phoneDate');
-    if (phoneDateInput) {
-        phoneDateInput.addEventListener('change', handlePhoneDateChange);
-    }
+    document.getElementById('date').addEventListener('change', handleDateChange);
+    document.getElementById('phoneDate').addEventListener('change', handlePhoneDateChange);
     
     // Smooth scrolling for navigation links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -546,212 +335,6 @@ function setupEventListeners() {
     
     // Animation on scroll
     window.addEventListener('scroll', handleScrollAnimation);
-    
-    // Header scroll effect
-    window.addEventListener('scroll', function() {
-        const header = document.getElementById('header');
-        if (header) {
-            if (window.scrollY > 100) {
-                header.classList.add('scrolled');
-            } else {
-                header.classList.remove('scrolled');
-            }
-        }
-    });
-    
-    // Initialize service category cards
-    initializeServiceCategoryCards();
-    
-    // Initialize staff cards
-    initializeStaffCards();
-    
-    // Initialize time slots
-    initializeTimeSlots();
-}
-
-// Initialize service category cards
-function initializeServiceCategoryCards() {
-    const container = document.getElementById('service-category-cards');
-    if (!container) return;
-    
-    const categories = Object.keys(serviceCategories);
-    container.innerHTML = categories.map(category => `
-        <div class="service-category-card" data-category="${category}">
-            <div class="card-icon">
-                <i class="${serviceCategories[category].icon}"></i>
-            </div>
-            <div class="card-content">
-                <h4>${serviceCategories[category].name}</h4>
-                <p>${serviceCategories[category].description}</p>
-            </div>
-        </div>
-    `).join('');
-    
-    // Add event listeners
-    container.querySelectorAll('.service-category-card').forEach(card => {
-        card.addEventListener('click', handleServiceCategoryCardClick);
-    });
-}
-
-// Initialize staff cards
-function initializeStaffCards() {
-    const container = document.getElementById('staff-cards');
-    if (!container) return;
-    
-    container.innerHTML = staff.map(member => `
-        <div class="staff-card" data-staff="${member.name}">
-            <div class="staff-avatar">${member.avatar || '👤'}</div>
-            <div class="staff-info">
-                <h4>${member.name}</h4>
-                <p>${member.specialty}</p>
-            </div>
-        </div>
-    `).join('');
-    
-    // Add event listeners
-    container.querySelectorAll('.staff-card').forEach(card => {
-        card.addEventListener('click', handleStaffCardClick);
-    });
-}
-
-// Initialize time slots
-function initializeTimeSlots() {
-    const container = document.getElementById('time-slots');
-    if (!container) return;
-    
-    generateTimeSlotCards(container);
-}
-
-// Generate time slot cards
-function generateTimeSlotCards(container) {
-    const slots = [];
-    for (let hour = 9; hour < 18; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
-            const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-            slots.push(timeString);
-        }
-    }
-    
-    container.innerHTML = slots.map(time => `
-        <div class="time-slot" data-time="${time}">
-            <span>${time}</span>
-        </div>
-    `).join('');
-    
-    // Add event listeners
-    container.querySelectorAll('.time-slot').forEach(slot => {
-        slot.addEventListener('click', handleTimeSlotClick);
-    });
-}
-
-// Handle service category card click
-function handleServiceCategoryCardClick(e) {
-    const card = e.currentTarget;
-    const category = card.getAttribute('data-category');
-    
-    // Remove selected class from all cards
-    document.querySelectorAll('.service-category-card').forEach(c => c.classList.remove('selected'));
-    
-    // Add selected class to clicked card
-    card.classList.add('selected');
-    
-    // Set hidden input value
-    const input = document.getElementById('service-category');
-    if (input) {
-        input.value = category;
-    }
-    
-    // Load subcategories
-    loadSubcategories(category);
-}
-
-// Handle staff card click
-function handleStaffCardClick(e) {
-    const card = e.currentTarget;
-    const staffName = card.getAttribute('data-staff');
-    
-    // Remove selected class from all cards
-    document.querySelectorAll('.staff-card').forEach(c => c.classList.remove('selected'));
-    
-    // Add selected class to clicked card
-    card.classList.add('selected');
-    
-    // Set hidden input value
-    const input = document.getElementById('staff');
-    if (input) {
-        input.value = staffName;
-    }
-}
-
-// Handle time slot click
-function handleTimeSlotClick(e) {
-    const slot = e.currentTarget;
-    const time = slot.getAttribute('data-time');
-    
-    // Remove selected class from all slots
-    document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
-    
-    // Add selected class to clicked slot
-    slot.classList.add('selected');
-    
-    // Set hidden input value
-    const input = document.getElementById('time');
-    if (input) {
-        input.value = time;
-    }
-}
-
-// Load subcategories
-function loadSubcategories(category) {
-    const container = document.getElementById('subcategory-cards');
-    if (!container) return;
-    
-    const subcategories = serviceCategories[category]?.subcategories || [];
-    container.innerHTML = subcategories.map(sub => `
-        <div class="subcategory-card" data-subcategory="${sub}">
-            <span>${sub}</span>
-        </div>
-    `).join('');
-    
-    // Add event listeners
-    container.querySelectorAll('.subcategory-card').forEach(card => {
-        card.addEventListener('click', handleSubcategoryCardClick);
-    });
-}
-
-// Handle subcategory card click
-function handleSubcategoryCardClick(e) {
-    const card = e.currentTarget;
-    const subcategory = card.getAttribute('data-subcategory');
-    
-    // Remove selected class from all cards
-    document.querySelectorAll('.subcategory-card').forEach(c => c.classList.remove('selected'));
-    
-    // Add selected class to clicked card
-    card.classList.add('selected');
-    
-    // Set hidden input value
-    const input = document.getElementById('subcategory');
-    if (input) {
-        input.value = subcategory;
-    }
-}
-
-// Handle contact form submission
-function handleContactSubmit(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const name = formData.get('name');
-    const email = formData.get('email');
-    const subject = formData.get('subject');
-    const message = formData.get('message');
-    
-    // Here you would typically send the data to a server
-    console.log('Contact form submitted:', { name, email, subject, message });
-    
-    showSuccessMessage('Mesajınız başarıyla gönderildi! En kısa sürede size dönüş yapacağız.');
-    e.target.reset();
 }
 
 // Handle appointment form submission
@@ -915,11 +498,6 @@ async function handleLogin(e) {
             closeModal('loginModal');
             updateNavForLoggedInUser();
             showSuccessMessage('Başarıyla giriş yaptınız!');
-            
-            // Redirect to admin panel if admin
-            if (currentUser.role === 'admin') {
-                window.location.href = 'admin.html';
-            }
             return;
         }
     } catch (error) {
@@ -935,11 +513,6 @@ async function handleLogin(e) {
         closeModal('loginModal');
         updateNavForLoggedInUser();
         showSuccessMessage('Başarıyla giriş yaptınız!');
-        
-        // Redirect to admin panel if admin
-        if (currentUser.role === 'admin') {
-            window.location.href = 'admin.html';
-        }
     } else {
         console.log('Giriş başarısız - kullanıcı bulunamadı');
         showErrorMessage('E-posta veya şifre hatalı!');
