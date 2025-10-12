@@ -1,19 +1,31 @@
 // Global variables
-let appointments = JSON.parse(localStorage.getItem('appointments')) || [];
-let users = JSON.parse(localStorage.getItem('users')) || [];
-let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
-let customers = JSON.parse(localStorage.getItem('customers')) || [];
-let services = JSON.parse(localStorage.getItem('services')) || [];
-let staff = JSON.parse(localStorage.getItem('staff')) || [];
-let settings = JSON.parse(localStorage.getItem('settings')) || {
+let appointments = [];
+let users = [];
+let currentUser = null;
+let customers = [];
+let services = [];
+let staff = [];
+let settings = {
     autoConfirm: false,
     whatsappReminder: true,
     reminderHours: 6,
     autoSendReminders: false
 };
+let expenses = [];
+let transactions = [];
 
-let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
-let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+// Firebase imports
+let firebase = null;
+let auth = null;
+let db = null;
+let database = null;
+
+// Firebase functions (will be imported when Firebase loads)
+let get = null;
+let set = null;
+let ref = null;
+let push = null;
+let remove = null;
 
 // Service categories and subcategories
 const serviceCategories = {
@@ -90,23 +102,178 @@ const adminUser = {
     createdAt: new Date().toISOString()
 };
 
-// Add admin user if not exists
-if (!users.find(u => u.email === 'admin@gmail.com')) {
-    users.push(adminUser);
-    localStorage.setItem('users', JSON.stringify(users));
+// Initialize admin user in Firebase
+async function initializeAdminUser() {
+    try {
+        if (database) {
+            const basePath = 'AbeautySaloon';
+            // Check if admin user exists
+            const usersSnapshot = await get(ref(database, `${basePath}/users`));
+            if (!usersSnapshot.exists()) {
+                // Create admin user in Firebase
+                await set(ref(database, `${basePath}/users`), [adminUser]);
+                users = [adminUser];
+            } else {
+                users = Object.values(usersSnapshot.val());
+            }
+        } else {
+            // Fallback to localStorage
+            users = [adminUser];
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+        
+        // Also try to create Firebase Auth user
+        await createFirebaseAdminUser();
+    } catch (error) {
+        console.error('Error initializing admin user:', error);
+        users = [adminUser];
+        localStorage.setItem('users', JSON.stringify(users));
+    }
+}
+
+// Create Firebase Authentication admin user
+async function createFirebaseAdminUser() {
+    try {
+        if (auth) {
+            const { createUserWithEmailAndPassword, updateProfile } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            
+            // Check if admin user already exists
+            const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            try {
+                await signInWithEmailAndPassword(auth, 'admin@gmail.com', '123456789');
+                console.log('Admin user already exists in Firebase Auth');
+            } catch (error) {
+                // User doesn't exist, create it
+                const userCredential = await createUserWithEmailAndPassword(auth, 'admin@gmail.com', '123456789');
+                await updateProfile(userCredential.user, {
+                    displayName: 'Admin'
+                });
+                console.log('Admin user created in Firebase Auth');
+            }
+        }
+    } catch (error) {
+        console.log('Firebase Auth admin user creation failed:', error);
+    }
 }
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
-    setupEventListeners();
-    loadAppointments();
-    setupScrollEffects();
-    requestNotificationPermission();
-    
-    // Check for reminders every 5 minutes
-    setInterval(checkReminders, 5 * 60 * 1000);
+    // Wait for Firebase to load
+    const checkFirebase = setInterval(() => {
+        if (window.firebase) {
+            firebase = window.firebase;
+            auth = firebase.auth;
+            db = firebase.db;
+            database = firebase.database;
+            
+            // Import Firebase Realtime Database functions
+            import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js').then(module => {
+                get = module.get;
+                set = module.set;
+                ref = module.ref;
+                push = module.push;
+                remove = module.remove;
+                
+                clearInterval(checkFirebase);
+                initializeAdminUser();
+                initializeApp();
+                setupEventListeners();
+                loadDataFromFirebase();
+                setupScrollEffects();
+                requestNotificationPermission();
+                
+                // Check for reminders every 5 minutes
+                setInterval(checkReminders, 5 * 60 * 1000);
+            });
+        }
+    }, 100);
 });
+
+// Firebase data management functions
+async function loadDataFromFirebase() {
+    try {
+        const basePath = 'AbeautySaloon';
+        
+        // Load appointments
+        const appointmentsSnapshot = await get(ref(database, `${basePath}/appointments`));
+        if (appointmentsSnapshot.exists()) {
+            appointments = Object.values(appointmentsSnapshot.val());
+        }
+        
+        // Load customers
+        const customersSnapshot = await get(ref(database, `${basePath}/customers`));
+        if (customersSnapshot.exists()) {
+            customers = Object.values(customersSnapshot.val());
+        }
+        
+        // Load staff
+        const staffSnapshot = await get(ref(database, `${basePath}/staff`));
+        if (staffSnapshot.exists()) {
+            staff = Object.values(staffSnapshot.val());
+        } else {
+            // Initialize default staff
+            await set(ref(database, `${basePath}/staff`), defaultStaff);
+            staff = defaultStaff;
+        }
+        
+        // Load settings
+        const settingsSnapshot = await get(ref(database, `${basePath}/settings`));
+        if (settingsSnapshot.exists()) {
+            settings = settingsSnapshot.val();
+        } else {
+            await set(ref(database, `${basePath}/settings`), settings);
+        }
+        
+        // Load expenses
+        const expensesSnapshot = await get(ref(database, `${basePath}/expenses`));
+        if (expensesSnapshot.exists()) {
+            expenses = Object.values(expensesSnapshot.val());
+        }
+        
+        // Load users
+        const usersSnapshot = await get(ref(database, `${basePath}/users`));
+        if (usersSnapshot.exists()) {
+            users = Object.values(usersSnapshot.val());
+        } else {
+            // Initialize admin user
+            await set(ref(database, `${basePath}/users`), [adminUser]);
+            users = [adminUser];
+        }
+        
+        console.log('Firebase data loaded successfully from AbeautySaloon');
+    } catch (error) {
+        console.error('Error loading data from Firebase:', error);
+        // Fallback to localStorage
+        loadFromLocalStorage();
+    }
+}
+
+function loadFromLocalStorage() {
+    appointments = JSON.parse(localStorage.getItem('appointments')) || [];
+    users = JSON.parse(localStorage.getItem('users')) || [adminUser];
+    currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+    customers = JSON.parse(localStorage.getItem('customers')) || [];
+    services = JSON.parse(localStorage.getItem('services')) || [];
+    staff = JSON.parse(localStorage.getItem('staff')) || defaultStaff;
+    settings = JSON.parse(localStorage.getItem('settings')) || settings;
+    expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+}
+
+// Save data to Firebase
+async function saveToFirebase(dataType, data) {
+    try {
+        if (database) {
+            const basePath = 'AbeautySaloon';
+            await set(ref(database, `${basePath}/${dataType}`), data);
+            console.log(`${dataType} saved to Firebase under AbeautySaloon`);
+        }
+    } catch (error) {
+        console.error(`Error saving ${dataType} to Firebase:`, error);
+        // Fallback to localStorage
+        localStorage.setItem(dataType, JSON.stringify(data));
+    }
+}
 
 // Initialize app
 function initializeApp() {
@@ -204,10 +371,12 @@ function handleAppointmentSubmit(e) {
     // Validate appointment
     if (validateAppointment(appointment)) {
         appointments.push(appointment);
-        localStorage.setItem('appointments', JSON.stringify(appointments));
+        
+        // Save to Firebase
+        await saveToFirebase('appointments', appointments);
         
         // Add customer if new
-        addCustomerIfNew(appointment.name, appointment.phone);
+        await addCustomerIfNew(appointment.name, appointment.phone);
         
         // Show success message
         const message = autoConfirm ? 
@@ -302,13 +471,40 @@ function validateAppointment(appointment) {
 }
 
 // Handle login
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
     const email = formData.get('email');
     const password = formData.get('password');
     
+    console.log('Giriş denemesi:', { email, password });
+    
+    try {
+        // Try Firebase Authentication first
+        if (auth) {
+            const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            
+            currentUser = {
+                id: user.uid,
+                name: user.displayName || 'Admin',
+                email: user.email,
+                role: 'admin'
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            closeModal('loginModal');
+            updateNavForLoggedInUser();
+            showSuccessMessage('Başarıyla giriş yaptınız!');
+            return;
+        }
+    } catch (error) {
+        console.log('Firebase auth failed, trying local auth:', error);
+    }
+    
+    // Fallback to local authentication
     const user = users.find(u => u.email === email && u.password === password);
     
     if (user) {
@@ -318,6 +514,7 @@ function handleLogin(e) {
         updateNavForLoggedInUser();
         showSuccessMessage('Başarıyla giriş yaptınız!');
     } else {
+        console.log('Giriş başarısız - kullanıcı bulunamadı');
         showErrorMessage('E-posta veya şifre hatalı!');
     }
 }
@@ -1238,7 +1435,7 @@ function viewCustomerHistory(phone) {
 }
 
 // Add customer if new
-function addCustomerIfNew(name, phone) {
+async function addCustomerIfNew(name, phone) {
     const existingCustomer = customers.find(customer => 
         customer.phone === phone || customer.name === name
     );
@@ -1254,12 +1451,12 @@ function addCustomerIfNew(name, phone) {
             totalSpent: 0
         };
         customers.push(newCustomer);
-        localStorage.setItem('customers', JSON.stringify(customers));
+        await saveToFirebase('customers', customers);
     } else {
         // Update last visit and appointment count
         existingCustomer.lastVisit = new Date().toISOString();
         existingCustomer.totalAppointments = (existingCustomer.totalAppointments || 0) + 1;
-        localStorage.setItem('customers', JSON.stringify(customers));
+        await saveToFirebase('customers', customers);
     }
 }
 
