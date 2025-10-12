@@ -13,8 +13,14 @@
     <header class="header">
         <nav class="navbar">
             <div class="nav-brand">
-                <i class="fas fa-spa"></i>
-                <span>Güzellik Salonu</span>
+                <div class="brand-icon">
+                    <i class="fas fa-spa"></i>
+                    <div class="brand-glow"></div>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">Güzellik Salonu</span>
+                    <span class="brand-tagline">Güzelliğiniz İçin</span>
+                </div>
             </div>
             <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
                 <span></span>
@@ -22,14 +28,32 @@
                 <span></span>
             </button>
             <div class="nav-menu">
-                <a href="#home" class="nav-link" onclick="closeMobileMenu()">Ana Sayfa</a>
-                <a href="#services" class="nav-link" onclick="closeMobileMenu()">Hizmetler</a>
-                <a href="#appointment" class="nav-link" onclick="closeMobileMenu()">Randevu Al</a>
-                <a href="#contact" class="nav-link" onclick="closeMobileMenu()">İletişim</a>
+                <a href="#home" class="nav-link" onclick="closeMobileMenu()">
+                    <i class="fas fa-home"></i>
+                    <span>Ana Sayfa</span>
+                </a>
+                <a href="#services" class="nav-link" onclick="closeMobileMenu()">
+                    <i class="fas fa-spa"></i>
+                    <span>Hizmetler</span>
+                </a>
+                <a href="#appointment" class="nav-link" onclick="closeMobileMenu()">
+                    <i class="fas fa-calendar-plus"></i>
+                    <span>Randevu Al</span>
+                </a>
+                <a href="#contact" class="nav-link" onclick="closeMobileMenu()">
+                    <i class="fas fa-phone"></i>
+                    <span>İletişim</span>
+                </a>
             </div>
             <div class="nav-actions">
-                <button class="btn-login" onclick="showLoginModal()">Giriş Yap</button>
-                <button class="btn-register" onclick="showRegisterModal()">Kayıt Ol</button>
+                <button class="btn-login" onclick="showLoginModal()">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Giriş Yap</span>
+                </button>
+                <button class="btn-register" onclick="showRegisterModal()">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Kayıt Ol</span>
+                </button>
             </div>
         </nav>
     </header>
@@ -104,29 +128,44 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="service-category">Hizmet Kategorisi</label>
-                        <select id="service-category" name="service-category" required>
-                            <option value="">Kategori seçin</option>
-                            <option value="epilasyon">Epilasyon</option>
-                            <option value="zayiflama">Zayıflama</option>
-                            <option value="cilt-bakimi">Cilt Bakımı</option>
-                            <option value="sac-bakimi">Saç Bakımı</option>
-                            <option value="makyaj">Makyaj</option>
-                        </select>
+                        <label>Hizmet Kategorisi</label>
+                        <div class="service-category-cards" id="service-category-cards">
+                            <div class="service-category-card" data-category="epilasyon">
+                                <i class="fas fa-cut"></i>
+                                <h4>Epilasyon</h4>
+                            </div>
+                            <div class="service-category-card" data-category="zayiflama">
+                                <i class="fas fa-weight"></i>
+                                <h4>Zayıflama</h4>
+                            </div>
+                            <div class="service-category-card" data-category="cilt-bakimi">
+                                <i class="fas fa-leaf"></i>
+                                <h4>Cilt Bakımı</h4>
+                            </div>
+                            <div class="service-category-card" data-category="sac-bakimi">
+                                <i class="fas fa-cut"></i>
+                                <h4>Saç Bakımı</h4>
+                            </div>
+                            <div class="service-category-card" data-category="makyaj">
+                                <i class="fas fa-palette"></i>
+                                <h4>Makyaj</h4>
+                            </div>
+                        </div>
+                        <input type="hidden" id="service-category" name="service-category">
                     </div>
                     
                     <div class="form-group" id="subcategory-group" style="display: none;">
-                        <label for="service-subcategory">Alt Kategori</label>
-                        <select id="service-subcategory" name="service-subcategory">
-                            <option value="">Alt kategori seçin</option>
-                        </select>
+                        <label>Alt Kategori</label>
+                        <div class="service-category-cards" id="subcategory-cards">
+                        </div>
+                        <input type="hidden" id="service-subcategory" name="service-subcategory">
                     </div>
                     
                     <div class="form-group" id="staff-group" style="display: none;">
-                        <label for="staff">Personel Seçimi</label>
-                        <select id="staff" name="staff">
-                            <option value="">Personel seçin</option>
-                        </select>
+                        <label>Personel Seçimi</label>
+                        <div class="staff-cards" id="staff-cards">
+                        </div>
+                        <input type="hidden" id="staff" name="staff">
                     </div>
                     
                     <div class="form-row">
@@ -135,10 +174,10 @@
                             <input type="date" id="date" name="date" required>
                         </div>
                         <div class="form-group">
-                            <label for="time">Saat</label>
-                            <select id="time" name="time" required>
-                                <option value="">Saat seçin</option>
-                            </select>
+                            <label>Saat</label>
+                            <div class="time-slots" id="time-slots">
+                            </div>
+                            <input type="hidden" id="time" name="time">
                         </div>
                     </div>
                     
@@ -295,29 +334,44 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="phoneServiceCategory">Hizmet Kategorisi</label>
-                    <select id="phoneServiceCategory" name="service-category" required>
-                        <option value="">Kategori seçin</option>
-                        <option value="epilasyon">Epilasyon</option>
-                        <option value="zayiflama">Zayıflama</option>
-                        <option value="cilt-bakimi">Cilt Bakımı</option>
-                        <option value="sac-bakimi">Saç Bakımı</option>
-                        <option value="makyaj">Makyaj</option>
-                    </select>
+                    <label>Hizmet Kategorisi</label>
+                    <div class="service-category-cards" id="phone-service-category-cards">
+                        <div class="service-category-card" data-category="epilasyon">
+                            <i class="fas fa-cut"></i>
+                            <h4>Epilasyon</h4>
+                        </div>
+                        <div class="service-category-card" data-category="zayiflama">
+                            <i class="fas fa-weight"></i>
+                            <h4>Zayıflama</h4>
+                        </div>
+                        <div class="service-category-card" data-category="cilt-bakimi">
+                            <i class="fas fa-leaf"></i>
+                            <h4>Cilt Bakımı</h4>
+                        </div>
+                        <div class="service-category-card" data-category="sac-bakimi">
+                            <i class="fas fa-cut"></i>
+                            <h4>Saç Bakımı</h4>
+                        </div>
+                        <div class="service-category-card" data-category="makyaj">
+                            <i class="fas fa-palette"></i>
+                            <h4>Makyaj</h4>
+                        </div>
+                    </div>
+                    <input type="hidden" id="phoneServiceCategory" name="service-category">
                 </div>
                 
                 <div class="form-group" id="phoneSubcategoryGroup" style="display: none;">
-                    <label for="phoneServiceSubcategory">Alt Kategori</label>
-                    <select id="phoneServiceSubcategory" name="service-subcategory">
-                        <option value="">Alt kategori seçin</option>
-                    </select>
+                    <label>Alt Kategori</label>
+                    <div class="service-category-cards" id="phone-subcategory-cards">
+                    </div>
+                    <input type="hidden" id="phoneServiceSubcategory" name="service-subcategory">
                 </div>
                 
                 <div class="form-group" id="phoneStaffGroup" style="display: none;">
-                    <label for="phoneStaff">Personel Seçimi</label>
-                    <select id="phoneStaff" name="staff">
-                        <option value="">Personel seçin</option>
-                    </select>
+                    <label>Personel Seçimi</label>
+                    <div class="staff-cards" id="phone-staff-cards">
+                    </div>
+                    <input type="hidden" id="phoneStaff" name="staff">
                 </div>
                 
                 <div class="form-row">
@@ -326,10 +380,10 @@
                         <input type="date" id="phoneDate" name="date" required>
                     </div>
                     <div class="form-group">
-                        <label for="phoneTime">Saat</label>
-                        <select id="phoneTime" name="time" required>
-                            <option value="">Saat seçin</option>
-                        </select>
+                        <label>Saat</label>
+                        <div class="time-slots" id="phone-time-slots">
+                        </div>
+                        <input type="hidden" id="phoneTime" name="time">
                     </div>
                 </div>
                 

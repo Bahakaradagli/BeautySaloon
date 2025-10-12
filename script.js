@@ -8,8 +8,12 @@ let staff = JSON.parse(localStorage.getItem('staff')) || [];
 let settings = JSON.parse(localStorage.getItem('settings')) || {
     autoConfirm: false,
     whatsappReminder: true,
-    reminderHours: 6
+    reminderHours: 6,
+    autoSendReminders: false
 };
+
+let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 
 // Service categories and subcategories
 const serviceCategories = {
@@ -76,12 +80,32 @@ if (staff.length === 0) {
     localStorage.setItem('staff', JSON.stringify(staff));
 }
 
+// Initialize admin user
+const adminUser = {
+    id: 1,
+    name: 'Admin',
+    email: 'admin',
+    password: '123456789',
+    role: 'admin',
+    createdAt: new Date().toISOString()
+};
+
+// Add admin user if not exists
+if (!users.find(u => u.email === 'admin')) {
+    users.push(adminUser);
+    localStorage.setItem('users', JSON.stringify(users));
+}
+
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     setupEventListeners();
     loadAppointments();
     setupScrollEffects();
+    requestNotificationPermission();
+    
+    // Check for reminders every 5 minutes
+    setInterval(checkReminders, 5 * 60 * 1000);
 });
 
 // Initialize app
@@ -110,9 +134,15 @@ function setupEventListeners() {
     // Register form
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
     
-    // Service category change
-    document.getElementById('service-category').addEventListener('change', handleServiceCategoryChange);
-    document.getElementById('phoneServiceCategory').addEventListener('change', handlePhoneServiceCategoryChange);
+    // Service category cards
+    document.querySelectorAll('.service-category-card').forEach(card => {
+        card.addEventListener('click', handleServiceCategoryCardClick);
+    });
+    
+    // Phone service category cards
+    document.querySelectorAll('#phone-service-category-cards .service-category-card').forEach(card => {
+        card.addEventListener('click', handlePhoneServiceCategoryCardClick);
+    });
     
     // Customer name input for suggestions
     document.getElementById('name').addEventListener('input', handleCustomerNameInput);
@@ -346,18 +376,48 @@ function showAdminPanel() {
     
     const adminHTML = `
         <div class="admin-panel">
-            <h2>Yönetim Paneli</h2>
+            <h2><i class="fas fa-cogs"></i> Yönetim Paneli</h2>
             <div class="admin-tabs">
-                <button class="tab-btn active" onclick="showTab('appointments')">Randevular</button>
-                <button class="tab-btn" onclick="showTab('revenue')">Gelir-Gider</button>
-                <button class="tab-btn" onclick="showTab('customers')">Müşteriler</button>
+                <button class="tab-btn active" onclick="showTab('appointments')">
+                    <i class="fas fa-calendar-alt"></i> Randevular
+                </button>
+                <button class="tab-btn" onclick="showTab('revenue')">
+                    <i class="fas fa-chart-line"></i> Gelir-Gider
+                </button>
+                <button class="tab-btn" onclick="showTab('customers')">
+                    <i class="fas fa-users"></i> Müşteriler
+                </button>
+                <button class="tab-btn" onclick="showTab('services')">
+                    <i class="fas fa-spa"></i> Hizmetler
+                </button>
+                <button class="tab-btn" onclick="showTab('staff')">
+                    <i class="fas fa-user-tie"></i> Personel
+                </button>
+                <button class="tab-btn" onclick="showTab('settings')">
+                    <i class="fas fa-cog"></i> Ayarlar
+                </button>
             </div>
             <div id="appointments-tab" class="tab-content active">
-                <h3>Randevu Listesi</h3>
+                <div class="tab-header">
+                    <h3><i class="fas fa-calendar-alt"></i> Randevu Yönetimi</h3>
+                    <button class="btn-primary" onclick="showPhoneAppointmentModal()">
+                        <i class="fas fa-phone"></i> Telefon Randevu
+                    </button>
+                </div>
+                <div class="appointment-filters">
+                    <select id="status-filter" onchange="filterAppointments()">
+                        <option value="">Tüm Durumlar</option>
+                        <option value="pending">Beklemede</option>
+                        <option value="confirmed">Onaylandı</option>
+                        <option value="completed">Tamamlandı</option>
+                        <option value="cancelled">İptal</option>
+                    </select>
+                    <input type="date" id="date-filter" onchange="filterAppointments()">
+                </div>
                 <div id="appointments-list"></div>
             </div>
             <div id="revenue-tab" class="tab-content">
-                <h3>Gelir-Gider Takibi</h3>
+                <h3><i class="fas fa-chart-line"></i> Gelir-Gider Takibi</h3>
                 <div class="revenue-stats">
                     <div class="stat-card">
                         <h4>Toplam Gelir</h4>
@@ -367,12 +427,68 @@ function showAdminPanel() {
                         <h4>Bu Ay</h4>
                         <span id="monthly-revenue">0₺</span>
                     </div>
+                    <div class="stat-card">
+                        <h4>Bugün</h4>
+                        <span id="daily-revenue">0₺</span>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Toplam Randevu</h4>
+                        <span id="total-appointments">0</span>
+                    </div>
+                </div>
+                <div class="revenue-actions">
+                    <button class="btn-primary" onclick="showAddExpenseModal()">
+                        <i class="fas fa-plus"></i> Gider Ekle
+                    </button>
+                    <button class="btn-primary" onclick="showRevenueReport()">
+                        <i class="fas fa-chart-bar"></i> Rapor
+                    </button>
                 </div>
                 <div id="revenue-list"></div>
             </div>
             <div id="customers-tab" class="tab-content">
-                <h3>Müşteri Listesi</h3>
+                <h3><i class="fas fa-users"></i> Müşteri Yönetimi</h3>
+                <div class="customer-actions">
+                    <button class="btn-primary" onclick="sendBulkWhatsAppMessage()">
+                        <i class="fab fa-whatsapp"></i> Toplu Mesaj
+                    </button>
+                </div>
                 <div id="customers-list"></div>
+            </div>
+            <div id="services-tab" class="tab-content">
+                <h3><i class="fas fa-spa"></i> Hizmet Yönetimi</h3>
+                <div class="service-actions">
+                    <button class="btn-primary" onclick="showAddServiceModal()">
+                        <i class="fas fa-plus"></i> Hizmet Ekle
+                    </button>
+                </div>
+                <div id="services-list"></div>
+            </div>
+            <div id="staff-tab" class="tab-content">
+                <h3><i class="fas fa-user-tie"></i> Personel Yönetimi</h3>
+                <div class="staff-actions">
+                    <button class="btn-primary" onclick="showAddStaffModal()">
+                        <i class="fas fa-plus"></i> Personel Ekle
+                    </button>
+                </div>
+                <div id="staff-list"></div>
+            </div>
+            <div id="settings-tab" class="tab-content">
+                <h3><i class="fas fa-cog"></i> Sistem Ayarları</h3>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <label>Otomatik Onay</label>
+                        <input type="checkbox" id="auto-confirm-setting" onchange="updateSetting('autoConfirm', this.checked)">
+                    </div>
+                    <div class="setting-item">
+                        <label>WhatsApp Hatırlatma</label>
+                        <input type="checkbox" id="whatsapp-reminder-setting" onchange="updateSetting('whatsappReminder', this.checked)">
+                    </div>
+                    <div class="setting-item">
+                        <label>Hatırlatma Saati (saat öncesi)</label>
+                        <input type="number" id="reminder-hours-setting" onchange="updateSetting('reminderHours', this.value)" min="1" max="24">
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -426,6 +542,9 @@ function loadAdminData() {
     loadAppointmentsList();
     loadRevenueData();
     loadCustomersList();
+    loadServicesList();
+    loadStaffList();
+    loadSettings();
 }
 
 // Load appointments list
@@ -477,19 +596,10 @@ function deleteAppointment(id) {
 
 // Load revenue data
 function loadRevenueData() {
+    // Calculate total revenue from completed appointments
     const totalRevenue = appointments
         .filter(apt => apt.status === 'completed')
-        .reduce((sum, apt) => {
-            const servicePrices = {
-                'haircut': 150,
-                'makeup': 200,
-                'manicure': 100,
-                'skincare': 300
-            };
-            return sum + (servicePrices[apt.service] || 0);
-        }, 0);
-    
-    document.getElementById('total-revenue').textContent = totalRevenue + '₺';
+        .reduce((sum, apt) => sum + (apt.servicePrice || 0), 0);
     
     // Calculate monthly revenue
     const currentMonth = new Date().getMonth();
@@ -501,17 +611,248 @@ function loadRevenueData() {
                    aptDate.getMonth() === currentMonth && 
                    aptDate.getFullYear() === currentYear;
         })
-        .reduce((sum, apt) => {
-            const servicePrices = {
-                'haircut': 150,
-                'makeup': 200,
-                'manicure': 100,
-                'skincare': 300
-            };
-            return sum + (servicePrices[apt.service] || 0);
-        }, 0);
+        .reduce((sum, apt) => sum + (apt.servicePrice || 0), 0);
     
+    // Calculate daily revenue
+    const today = new Date().toISOString().split('T')[0];
+    const dailyRevenue = appointments
+        .filter(apt => apt.status === 'completed' && apt.date === today)
+        .reduce((sum, apt) => sum + (apt.servicePrice || 0), 0);
+    
+    // Calculate total expenses
+    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    
+    // Calculate net profit
+    const netProfit = totalRevenue - totalExpenses;
+    
+    // Update display
+    document.getElementById('total-revenue').textContent = totalRevenue + '₺';
     document.getElementById('monthly-revenue').textContent = monthlyRevenue + '₺';
+    document.getElementById('daily-revenue').textContent = dailyRevenue + '₺';
+    document.getElementById('total-appointments').textContent = appointments.length;
+    
+    // Load revenue list
+    loadRevenueList();
+}
+
+// Load revenue list
+function loadRevenueList() {
+    const revenueList = document.getElementById('revenue-list');
+    if (!revenueList) return;
+    
+    let revenueHTML = '<h4>Son İşlemler</h4>';
+    
+    // Add completed appointments
+    const completedAppointments = appointments
+        .filter(apt => apt.status === 'completed')
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 10);
+    
+    completedAppointments.forEach(apt => {
+        revenueHTML += `
+            <div class="revenue-item">
+                <div class="revenue-info">
+                    <h5>${apt.name} - ${apt.serviceName}</h5>
+                    <p>${apt.date} ${apt.time}</p>
+                </div>
+                <div class="revenue-amount">
+                    <span class="amount positive">+${apt.servicePrice}₺</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Add expenses
+    const recentExpenses = expenses
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5);
+    
+    if (recentExpenses.length > 0) {
+        revenueHTML += '<h4>Son Giderler</h4>';
+        recentExpenses.forEach(expense => {
+            revenueHTML += `
+                <div class="revenue-item">
+                    <div class="revenue-info">
+                        <h5>${expense.description}</h5>
+                        <p>${expense.date}</p>
+                    </div>
+                    <div class="revenue-amount">
+                        <span class="amount negative">-${expense.amount}₺</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    revenueList.innerHTML = revenueHTML;
+}
+
+// Show add expense modal
+function showAddExpenseModal() {
+    const expenseHTML = `
+        <div class="expense-form">
+            <h3>Gider Ekle</h3>
+            <form id="expenseForm">
+                <div class="form-group">
+                    <label for="expenseDescription">Açıklama</label>
+                    <input type="text" id="expenseDescription" name="description" required>
+                </div>
+                <div class="form-group">
+                    <label for="expenseAmount">Tutar</label>
+                    <input type="number" id="expenseAmount" name="amount" required min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="expenseDate">Tarih</label>
+                    <input type="date" id="expenseDate" name="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="expenseCategory">Kategori</label>
+                    <select id="expenseCategory" name="category">
+                        <option value="market">Market</option>
+                        <option value="yemek">Yemek</option>
+                        <option value="elektrik">Elektrik</option>
+                        <option value="kira">Kira</option>
+                        <option value="malzeme">Malzeme</option>
+                        <option value="diger">Diğer</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit">Gider Ekle</button>
+            </form>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'expenseModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('expenseModal')">&times;</span>
+            ${expenseHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    // Set today's date
+    document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+    
+    // Add form submit handler
+    document.getElementById('expenseForm').addEventListener('submit', handleExpenseSubmit);
+}
+
+// Handle expense form submission
+function handleExpenseSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const expense = {
+        id: Date.now(),
+        description: formData.get('description'),
+        amount: parseFloat(formData.get('amount')),
+        date: formData.get('date'),
+        category: formData.get('category'),
+        createdAt: new Date().toISOString()
+    };
+    
+    expenses.push(expense);
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+    
+    closeModal('expenseModal');
+    showSuccessMessage('Gider başarıyla eklendi!');
+    
+    // Reload revenue data
+    loadRevenueData();
+}
+
+// Show revenue report
+function showRevenueReport() {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    // Calculate monthly data
+    const monthlyAppointments = appointments.filter(apt => {
+        const aptDate = new Date(apt.date);
+        return apt.status === 'completed' && 
+               aptDate.getMonth() === currentMonth && 
+               aptDate.getFullYear() === currentYear;
+    });
+    
+    const monthlyRevenue = monthlyAppointments.reduce((sum, apt) => sum + (apt.servicePrice || 0), 0);
+    const monthlyExpenses = expenses.filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear;
+    }).reduce((sum, exp) => sum + exp.amount, 0);
+    
+    const netProfit = monthlyRevenue - monthlyExpenses;
+    
+    const reportHTML = `
+        <div class="revenue-report">
+            <h3>Aylık Rapor - ${new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}</h3>
+            <div class="report-stats">
+                <div class="stat-item">
+                    <h4>Toplam Gelir</h4>
+                    <span class="positive">${monthlyRevenue}₺</span>
+                </div>
+                <div class="stat-item">
+                    <h4>Toplam Gider</h4>
+                    <span class="negative">${monthlyExpenses}₺</span>
+                </div>
+                <div class="stat-item">
+                    <h4>Net Kar</h4>
+                    <span class="${netProfit >= 0 ? 'positive' : 'negative'}">${netProfit}₺</span>
+                </div>
+                <div class="stat-item">
+                    <h4>Toplam Randevu</h4>
+                    <span>${monthlyAppointments.length}</span>
+                </div>
+            </div>
+            <div class="report-actions">
+                <button onclick="printReport()" class="btn-primary">
+                    <i class="fas fa-print"></i> Yazdır
+                </button>
+                <button onclick="exportReport()" class="btn-primary">
+                    <i class="fas fa-download"></i> Dışa Aktar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'reportModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('reportModal')">&times;</span>
+            ${reportHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// Print report
+function printReport() {
+    window.print();
+}
+
+// Export report
+function exportReport() {
+    const reportData = {
+        date: new Date().toISOString(),
+        monthlyRevenue: document.querySelector('.positive').textContent,
+        monthlyExpenses: document.querySelector('.negative').textContent,
+        netProfit: document.querySelector('.stat-item:last-child span').textContent
+    };
+    
+    const dataStr = JSON.stringify(reportData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rapor-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
 }
 
 // Load customers list
@@ -526,10 +867,14 @@ function loadCustomersList() {
             customerMap.set(apt.phone, {
                 name: apt.name,
                 phone: apt.phone,
-                appointments: []
+                appointments: [],
+                lastVisit: apt.date
             });
         }
         customerMap.get(apt.phone).appointments.push(apt);
+        if (new Date(apt.date) > new Date(customerMap.get(apt.phone).lastVisit)) {
+            customerMap.get(apt.phone).lastVisit = apt.date;
+        }
     });
     
     const customersHTML = Array.from(customerMap.values()).map(customer => `
@@ -538,10 +883,14 @@ function loadCustomersList() {
                 <h4>${customer.name}</h4>
                 <p>Tel: ${customer.phone}</p>
                 <p>Toplam Randevu: ${customer.appointments.length}</p>
+                <p>Son Ziyaret: ${new Date(customer.lastVisit).toLocaleDateString('tr-TR')}</p>
             </div>
             <div class="customer-actions">
                 <button onclick="sendWhatsAppMessage('${customer.phone}')" class="btn-whatsapp">
                     <i class="fab fa-whatsapp"></i> WhatsApp
+                </button>
+                <button onclick="viewCustomerHistory('${customer.phone}')" class="btn-primary">
+                    <i class="fas fa-history"></i> Geçmiş
                 </button>
             </div>
         </div>
@@ -550,12 +899,377 @@ function loadCustomersList() {
     customersList.innerHTML = customersHTML;
 }
 
+// Load services list
+function loadServicesList() {
+    const servicesList = document.getElementById('services-list');
+    if (!servicesList) return;
+    
+    let servicesHTML = '';
+    Object.keys(serviceCategories).forEach(categoryKey => {
+        const category = serviceCategories[categoryKey];
+        servicesHTML += `
+            <div class="service-category-item">
+                <h4>${category.name}</h4>
+                <div class="subcategory-list">
+                    ${category.subcategories.map(sub => `
+                        <div class="subcategory-item">
+                            <span>${sub.name}</span>
+                            <span>${sub.duration} dk</span>
+                            <span>${sub.price}₺</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+    
+    servicesList.innerHTML = servicesHTML;
+}
+
+// Load staff list
+function loadStaffList() {
+    const staffList = document.getElementById('staff-list');
+    if (!staffList) return;
+    
+    const staffHTML = staff.map(member => `
+        <div class="staff-item">
+            <div class="staff-info">
+                <div class="staff-avatar">${member.avatar}</div>
+                <div>
+                    <h4>${member.name}</h4>
+                    <p>Uzmanlık: ${member.specialty}</p>
+                </div>
+            </div>
+            <div class="staff-actions">
+                <button onclick="editStaff(${member.id})" class="btn-primary">
+                    <i class="fas fa-edit"></i> Düzenle
+                </button>
+                <button onclick="deleteStaff(${member.id})" class="btn-delete">
+                    <i class="fas fa-trash"></i> Sil
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    staffList.innerHTML = staffHTML;
+}
+
+// Load settings
+function loadSettings() {
+    document.getElementById('auto-confirm-setting').checked = settings.autoConfirm;
+    document.getElementById('whatsapp-reminder-setting').checked = settings.whatsappReminder;
+    document.getElementById('reminder-hours-setting').value = settings.reminderHours;
+}
+
+// Update setting
+function updateSetting(key, value) {
+    settings[key] = value;
+    localStorage.setItem('settings', JSON.stringify(settings));
+}
+
+// Filter appointments
+function filterAppointments() {
+    const statusFilter = document.getElementById('status-filter').value;
+    const dateFilter = document.getElementById('date-filter').value;
+    
+    let filteredAppointments = appointments;
+    
+    if (statusFilter) {
+        filteredAppointments = filteredAppointments.filter(apt => apt.status === statusFilter);
+    }
+    
+    if (dateFilter) {
+        filteredAppointments = filteredAppointments.filter(apt => apt.date === dateFilter);
+    }
+    
+    displayFilteredAppointments(filteredAppointments);
+}
+
+// Display filtered appointments
+function displayFilteredAppointments(filteredAppointments) {
+    const appointmentsList = document.getElementById('appointments-list');
+    if (!appointmentsList) return;
+    
+    const appointmentsHTML = filteredAppointments.map(appointment => `
+        <div class="appointment-item">
+            <div class="appointment-info">
+                <h4>${appointment.name}</h4>
+                <p>${appointment.serviceName} - ${appointment.date} ${appointment.time}</p>
+                <p>Tel: ${appointment.phone}</p>
+                <p>Durum: <span class="status-${appointment.status}">${getStatusText(appointment.status)}</span></p>
+                ${appointment.notes ? `<p>Not: ${appointment.notes}</p>` : ''}
+            </div>
+            <div class="appointment-actions">
+                <select onchange="updateAppointmentStatus(${appointment.id}, this.value)">
+                    <option value="pending" ${appointment.status === 'pending' ? 'selected' : ''}>Beklemede</option>
+                    <option value="confirmed" ${appointment.status === 'confirmed' ? 'selected' : ''}>Onaylandı</option>
+                    <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Tamamlandı</option>
+                    <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>İptal</option>
+                </select>
+                <button onclick="sendWhatsAppMessage('${appointment.phone}')" class="btn-whatsapp">
+                    <i class="fab fa-whatsapp"></i>
+                </button>
+                <button onclick="deleteAppointment(${appointment.id})" class="btn-delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    appointmentsList.innerHTML = appointmentsHTML;
+}
+
+// Get status text
+function getStatusText(status) {
+    const statusTexts = {
+        'pending': 'Beklemede',
+        'confirmed': 'Onaylandı',
+        'completed': 'Tamamlandı',
+        'cancelled': 'İptal'
+    };
+    return statusTexts[status] || status;
+}
+
 // Send WhatsApp message
 function sendWhatsAppMessage(appointment) {
-    const message = `Merhaba ${appointment.name}! Randevunuz alındı. Tarih: ${appointment.date}, Saat: ${appointment.time}. Teşekkürler!`;
-    const phone = appointment.phone || appointment;
+    let message;
+    let phone;
+    
+    if (typeof appointment === 'string') {
+        // Direct phone number
+        phone = appointment;
+        message = `Merhaba! Güzellik salonumuzdan size ulaşıyoruz. Size özel kampanyalarımız hakkında bilgi almak ister misiniz?`;
+    } else {
+        // Appointment object
+        phone = appointment.phone;
+        const serviceName = appointment.serviceName || 'Hizmet';
+        const servicePrice = appointment.servicePrice || 0;
+        
+        if (appointment.status === 'confirmed') {
+            message = `Merhaba ${appointment.name}! Randevunuz onaylandı. 
+📅 Tarih: ${appointment.date}
+🕐 Saat: ${appointment.time}
+💆‍♀️ Hizmet: ${serviceName}
+💰 Fiyat: ${servicePrice}₺
+📍 Adres: Merkez Mahallesi, Güzellik Sokak No:123, İstanbul
+
+Randevunuzdan ${settings.reminderHours} saat önce hatırlatma mesajı göndereceğiz. Teşekkürler!`;
+        } else {
+            message = `Merhaba ${appointment.name}! Randevunuz alındı. 
+📅 Tarih: ${appointment.date}
+🕐 Saat: ${appointment.time}
+💆‍♀️ Hizmet: ${serviceName}
+💰 Fiyat: ${servicePrice}₺
+
+En kısa sürede sizinle iletişime geçeceğiz. Teşekkürler!`;
+        }
+    }
+    
     const whatsappUrl = `https://wa.me/90${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
+}
+
+// Send bulk WhatsApp message
+function sendBulkWhatsAppMessage() {
+    const message = prompt('Göndermek istediğiniz mesajı yazın:');
+    if (!message) return;
+    
+    // Get all unique customers
+    const customerMap = new Map();
+    appointments.forEach(apt => {
+        if (!customerMap.has(apt.phone)) {
+            customerMap.set(apt.phone, apt.name);
+        }
+    });
+    
+    // Send to first customer as example
+    const firstCustomer = Array.from(customerMap.keys())[0];
+    if (firstCustomer) {
+        const whatsappUrl = `https://wa.me/90${firstCustomer.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+        
+        // Show info about bulk sending
+        alert(`Toplu mesaj gönderimi başlatıldı. ${customerMap.size} müşteriye mesaj gönderilecek. WhatsApp'ta "Broadcast" özelliğini kullanarak tüm müşterilere aynı anda mesaj gönderebilirsiniz.`);
+    }
+}
+
+// Schedule reminder messages
+function scheduleReminderMessages() {
+    if (!settings.whatsappReminder) return;
+    
+    const now = new Date();
+    const reminderTime = new Date(now.getTime() + (settings.reminderHours * 60 * 60 * 1000));
+    
+    appointments.forEach(appointment => {
+        if (appointment.status === 'confirmed') {
+            const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
+            const timeDiff = appointmentDateTime.getTime() - now.getTime();
+            const hoursUntilAppointment = timeDiff / (1000 * 60 * 60);
+            
+            // If appointment is within reminder time
+            if (hoursUntilAppointment <= settings.reminderHours && hoursUntilAppointment > 0) {
+                sendReminderMessage(appointment);
+            }
+        }
+    });
+}
+
+// Send reminder message
+function sendReminderMessage(appointment) {
+    const message = `🔔 Randevu Hatırlatması
+
+Merhaba ${appointment.name}!
+
+Randevunuz yaklaşıyor:
+📅 Tarih: ${appointment.date}
+🕐 Saat: ${appointment.time}
+💆‍♀️ Hizmet: ${appointment.serviceName}
+
+Randevunuzdan önce:
+• Cildinizi temiz tutun
+• Ağda/epilasyon için tüyleri uzatın
+• Alerjiniz varsa önceden bildirin
+
+Sorularınız için bize ulaşabilirsiniz. Görüşmek üzere! 💫`;
+
+    const whatsappUrl = `https://wa.me/90${appointment.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+// Check for appointments that need reminders
+function checkReminders() {
+    const now = new Date();
+    
+    appointments.forEach(appointment => {
+        if (appointment.status === 'confirmed') {
+            const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
+            const timeDiff = appointmentDateTime.getTime() - now.getTime();
+            const hoursUntilAppointment = timeDiff / (1000 * 60 * 60);
+            
+            // If appointment is within reminder time and hasn't been reminded
+            if (hoursUntilAppointment <= settings.reminderHours && hoursUntilAppointment > 0 && !appointment.reminderSent) {
+                appointment.reminderSent = true;
+                localStorage.setItem('appointments', JSON.stringify(appointments));
+                
+                // Show notification
+                showReminderNotification(appointment);
+            }
+        }
+    });
+}
+
+// Show reminder notification
+function showReminderNotification(appointment) {
+    if (Notification.permission === 'granted') {
+        new Notification('Randevu Hatırlatması', {
+            body: `${appointment.name} için randevu hatırlatması gönderilecek`,
+            icon: '/favicon.ico'
+        });
+    }
+    
+    // Auto-send reminder if enabled
+    if (settings.autoSendReminders) {
+        sendReminderMessage(appointment);
+    }
+}
+
+// Request notification permission
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+// View customer history
+function viewCustomerHistory(phone) {
+    const customerAppointments = appointments.filter(apt => apt.phone === phone);
+    const customer = customers.find(c => c.phone === phone);
+    
+    const historyHTML = `
+        <div class="customer-history">
+            <h3>${customer ? customer.name : 'Müşteri'} - Randevu Geçmişi</h3>
+            <div class="customer-stats">
+                <div class="stat-item">
+                    <h4>Toplam Randevu</h4>
+                    <span>${customerAppointments.length}</span>
+                </div>
+                <div class="stat-item">
+                    <h4>Tamamlanan</h4>
+                    <span>${customerAppointments.filter(apt => apt.status === 'completed').length}</span>
+                </div>
+                <div class="stat-item">
+                    <h4>Toplam Harcama</h4>
+                    <span>${customerAppointments.filter(apt => apt.status === 'completed').reduce((sum, apt) => sum + (apt.servicePrice || 0), 0)}₺</span>
+                </div>
+            </div>
+            <div class="appointments-history">
+                <h4>Randevu Geçmişi</h4>
+                ${customerAppointments.map(apt => `
+                    <div class="appointment-history-item">
+                        <div class="appointment-info">
+                            <h5>${apt.serviceName}</h5>
+                            <p>${apt.date} ${apt.time}</p>
+                            <p>Durum: <span class="status-${apt.status}">${getStatusText(apt.status)}</span></p>
+                            ${apt.servicePrice ? `<p>Fiyat: ${apt.servicePrice}₺</p>` : ''}
+                        </div>
+                        <div class="appointment-actions">
+                            <button onclick="sendWhatsAppMessage('${apt.phone}')" class="btn-whatsapp">
+                                <i class="fab fa-whatsapp"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'customerHistoryModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('customerHistoryModal')">&times;</span>
+            ${historyHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// Add customer if new
+function addCustomerIfNew(name, phone) {
+    const existingCustomer = customers.find(customer => 
+        customer.phone === phone || customer.name === name
+    );
+    
+    if (!existingCustomer) {
+        const newCustomer = {
+            id: Date.now(),
+            name: name,
+            phone: phone,
+            createdAt: new Date().toISOString(),
+            lastVisit: new Date().toISOString(),
+            totalAppointments: 1,
+            totalSpent: 0
+        };
+        customers.push(newCustomer);
+        localStorage.setItem('customers', JSON.stringify(customers));
+    } else {
+        // Update last visit and appointment count
+        existingCustomer.lastVisit = new Date().toISOString();
+        existingCustomer.totalAppointments = (existingCustomer.totalAppointments || 0) + 1;
+        localStorage.setItem('customers', JSON.stringify(customers));
+    }
+}
+
+// Update customer spending
+function updateCustomerSpending(phone, amount) {
+    const customer = customers.find(c => c.phone === phone);
+    if (customer) {
+        customer.totalSpent = (customer.totalSpent || 0) + amount;
+        localStorage.setItem('customers', JSON.stringify(customers));
+    }
 }
 
 // Modal functions
@@ -722,46 +1436,194 @@ document.addEventListener('DOMContentLoaded', function() {
     setupTouchInteractions();
 });
 
-// Service category change handlers
-function handleServiceCategoryChange(e) {
-    const category = e.target.value;
+// Service category card click handler
+function handleServiceCategoryCardClick(e) {
+    const category = e.currentTarget.dataset.category;
     const subcategoryGroup = document.getElementById('subcategory-group');
-    const subcategorySelect = document.getElementById('service-subcategory');
+    const subcategoryCards = document.getElementById('subcategory-cards');
     const staffGroup = document.getElementById('staff-group');
-    const staffSelect = document.getElementById('staff');
+    const staffCards = document.getElementById('staff-cards');
+    
+    // Remove active class from all category cards
+    document.querySelectorAll('.service-category-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add active class to clicked card
+    e.currentTarget.classList.add('selected');
+    
+    // Set hidden input value
+    document.getElementById('service-category').value = category;
     
     if (category && serviceCategories[category]) {
         // Show subcategory group
         subcategoryGroup.style.display = 'block';
         
         // Populate subcategories
-        subcategorySelect.innerHTML = '<option value="">Alt kategori seçin</option>';
+        subcategoryCards.innerHTML = '';
         serviceCategories[category].subcategories.forEach(sub => {
-            const option = document.createElement('option');
-            option.value = sub.value;
-            option.textContent = sub.name;
-            option.dataset.duration = sub.duration;
-            option.dataset.price = sub.price;
-            subcategorySelect.appendChild(option);
+            const card = document.createElement('div');
+            card.className = 'service-category-card';
+            card.dataset.subcategory = sub.value;
+            card.innerHTML = `
+                <i class="fas fa-spa"></i>
+                <h4>${sub.name}</h4>
+                <p>${sub.duration} dk - ${sub.price}₺</p>
+            `;
+            card.addEventListener('click', handleSubcategoryCardClick);
+            subcategoryCards.appendChild(card);
         });
         
         // Show staff group
         staffGroup.style.display = 'block';
         
         // Populate staff
-        staffSelect.innerHTML = '<option value="">Personel seçin</option>';
+        staffCards.innerHTML = '';
         staff.forEach(member => {
             if (member.specialty === serviceCategories[category].name || member.specialty === 'Tümü') {
-                const option = document.createElement('option');
-                option.value = member.id;
-                option.textContent = member.name;
-                staffSelect.appendChild(option);
+                const card = document.createElement('div');
+                card.className = 'staff-card';
+                card.dataset.staff = member.id;
+                card.innerHTML = `
+                    <div class="staff-avatar">${member.avatar}</div>
+                    <h4>${member.name}</h4>
+                    <p>${member.specialty}</p>
+                `;
+                card.addEventListener('click', handleStaffCardClick);
+                staffCards.appendChild(card);
             }
         });
     } else {
         subcategoryGroup.style.display = 'none';
         staffGroup.style.display = 'none';
     }
+}
+
+// Subcategory card click handler
+function handleSubcategoryCardClick(e) {
+    const subcategory = e.currentTarget.dataset.subcategory;
+    
+    // Remove active class from all subcategory cards
+    document.querySelectorAll('#subcategory-cards .service-category-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add active class to clicked card
+    e.currentTarget.classList.add('selected');
+    
+    // Set hidden input value
+    document.getElementById('service-subcategory').value = subcategory;
+}
+
+// Staff card click handler
+function handleStaffCardClick(e) {
+    const staffId = e.currentTarget.dataset.staff;
+    
+    // Remove active class from all staff cards
+    document.querySelectorAll('#staff-cards .staff-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add active class to clicked card
+    e.currentTarget.classList.add('selected');
+    
+    // Set hidden input value
+    document.getElementById('staff').value = staffId;
+}
+
+// Phone service category card click handler
+function handlePhoneServiceCategoryCardClick(e) {
+    const category = e.currentTarget.dataset.category;
+    const subcategoryGroup = document.getElementById('phoneSubcategoryGroup');
+    const subcategoryCards = document.getElementById('phone-subcategory-cards');
+    const staffGroup = document.getElementById('phoneStaffGroup');
+    const staffCards = document.getElementById('phone-staff-cards');
+    
+    // Remove active class from all phone category cards
+    document.querySelectorAll('#phone-service-category-cards .service-category-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add active class to clicked card
+    e.currentTarget.classList.add('selected');
+    
+    // Set hidden input value
+    document.getElementById('phoneServiceCategory').value = category;
+    
+    if (category && serviceCategories[category]) {
+        // Show subcategory group
+        subcategoryGroup.style.display = 'block';
+        
+        // Populate subcategories
+        subcategoryCards.innerHTML = '';
+        serviceCategories[category].subcategories.forEach(sub => {
+            const card = document.createElement('div');
+            card.className = 'service-category-card';
+            card.dataset.subcategory = sub.value;
+            card.innerHTML = `
+                <i class="fas fa-spa"></i>
+                <h4>${sub.name}</h4>
+                <p>${sub.duration} dk - ${sub.price}₺</p>
+            `;
+            card.addEventListener('click', handlePhoneSubcategoryCardClick);
+            subcategoryCards.appendChild(card);
+        });
+        
+        // Show staff group
+        staffGroup.style.display = 'block';
+        
+        // Populate staff
+        staffCards.innerHTML = '';
+        staff.forEach(member => {
+            if (member.specialty === serviceCategories[category].name || member.specialty === 'Tümü') {
+                const card = document.createElement('div');
+                card.className = 'staff-card';
+                card.dataset.staff = member.id;
+                card.innerHTML = `
+                    <div class="staff-avatar">${member.avatar}</div>
+                    <h4>${member.name}</h4>
+                    <p>${member.specialty}</p>
+                `;
+                card.addEventListener('click', handlePhoneStaffCardClick);
+                staffCards.appendChild(card);
+            }
+        });
+    } else {
+        subcategoryGroup.style.display = 'none';
+        staffGroup.style.display = 'none';
+    }
+}
+
+// Phone subcategory card click handler
+function handlePhoneSubcategoryCardClick(e) {
+    const subcategory = e.currentTarget.dataset.subcategory;
+    
+    // Remove active class from all phone subcategory cards
+    document.querySelectorAll('#phone-subcategory-cards .service-category-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add active class to clicked card
+    e.currentTarget.classList.add('selected');
+    
+    // Set hidden input value
+    document.getElementById('phoneServiceSubcategory').value = subcategory;
+}
+
+// Phone staff card click handler
+function handlePhoneStaffCardClick(e) {
+    const staffId = e.currentTarget.dataset.staff;
+    
+    // Remove active class from all phone staff cards
+    document.querySelectorAll('#phone-staff-cards .staff-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add active class to clicked card
+    e.currentTarget.classList.add('selected');
+    
+    // Set hidden input value
+    document.getElementById('phoneStaff').value = staffId;
 }
 
 function handlePhoneServiceCategoryChange(e) {
@@ -872,23 +1734,64 @@ function selectPhoneCustomer(name, phone) {
 // Date change handlers
 function handleDateChange(e) {
     const date = e.target.value;
-    const timeSelect = document.getElementById('time');
+    const timeSlots = document.getElementById('time-slots');
     
     if (date) {
-        generateTimeSlots(date, timeSelect);
+        generateTimeSlotCards(date, timeSlots);
     }
 }
 
 function handlePhoneDateChange(e) {
     const date = e.target.value;
-    const timeSelect = document.getElementById('phoneTime');
+    const timeSlots = document.getElementById('phone-time-slots');
     
     if (date) {
-        generateTimeSlots(date, timeSelect);
+        generateTimeSlotCards(date, timeSlots);
     }
 }
 
-// Generate time slots
+// Generate time slot cards
+function generateTimeSlotCards(date, container) {
+    container.innerHTML = '';
+    const startHour = 9;
+    const endHour = 18;
+    
+    for (let hour = startHour; hour < endHour; hour++) {
+        for (let minute = 0; minute < 60; minute += 15) {
+            const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            const isAvailable = isTimeSlotAvailable(date, timeString);
+            
+            const slot = document.createElement('div');
+            slot.className = `time-slot ${!isAvailable ? 'unavailable' : ''}`;
+            slot.dataset.time = timeString;
+            slot.textContent = timeString;
+            
+            if (isAvailable) {
+                slot.addEventListener('click', handleTimeSlotClick);
+            }
+            
+            container.appendChild(slot);
+        }
+    }
+}
+
+// Time slot click handler
+function handleTimeSlotClick(e) {
+    const time = e.target.dataset.time;
+    
+    // Remove active class from all time slots
+    document.querySelectorAll('.time-slot').forEach(slot => {
+        slot.classList.remove('selected');
+    });
+    
+    // Add active class to clicked slot
+    e.target.classList.add('selected');
+    
+    // Set hidden input value
+    document.getElementById('time').value = time;
+}
+
+// Generate time slots (for phone appointments)
 function generateTimeSlots(date, selectElement) {
     const slots = [];
     const startHour = 9;
