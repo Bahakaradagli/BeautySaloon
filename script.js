@@ -84,14 +84,14 @@ if (staff.length === 0) {
 const adminUser = {
     id: 1,
     name: 'Admin',
-    email: 'admin',
+    email: 'admin@gmail.com',
     password: '123456789',
     role: 'admin',
     createdAt: new Date().toISOString()
 };
 
 // Add admin user if not exists
-if (!users.find(u => u.email === 'admin')) {
+if (!users.find(u => u.email === 'admin@gmail.com')) {
     users.push(adminUser);
     localStorage.setItem('users', JSON.stringify(users));
 }
