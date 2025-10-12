@@ -16,11 +16,16 @@
                 <i class="fas fa-spa"></i>
                 <span>Güzellik Salonu</span>
             </div>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <div class="nav-menu">
-                <a href="#home" class="nav-link">Ana Sayfa</a>
-                <a href="#services" class="nav-link">Hizmetler</a>
-                <a href="#appointment" class="nav-link">Randevu Al</a>
-                <a href="#contact" class="nav-link">İletişim</a>
+                <a href="#home" class="nav-link" onclick="closeMobileMenu()">Ana Sayfa</a>
+                <a href="#services" class="nav-link" onclick="closeMobileMenu()">Hizmetler</a>
+                <a href="#appointment" class="nav-link" onclick="closeMobileMenu()">Randevu Al</a>
+                <a href="#contact" class="nav-link" onclick="closeMobileMenu()">İletişim</a>
             </div>
             <div class="nav-actions">
                 <button class="btn-login" onclick="showLoginModal()">Giriş Yap</button>
@@ -86,48 +91,70 @@
             <h2 class="section-title">Randevu Al</h2>
             <div class="appointment-form">
                 <form id="appointmentForm">
-                    <div class="form-group">
-                        <label for="name">Ad Soyad</label>
-                        <input type="text" id="name" name="name" required>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Ad Soyad</label>
+                            <input type="text" id="name" name="name" required autocomplete="off">
+                            <div id="customer-suggestions" class="suggestions"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Telefon</label>
+                            <input type="tel" id="phone" name="phone" required>
+                        </div>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="phone">Telefon</label>
-                        <input type="tel" id="phone" name="phone" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="service">Hizmet Seçin</label>
-                        <select id="service" name="service" required>
-                            <option value="">Hizmet seçin</option>
-                            <option value="haircut">Saç Kesimi & Styling</option>
-                            <option value="makeup">Makyaj</option>
-                            <option value="manicure">Manikür & Pedikür</option>
-                            <option value="skincare">Cilt Bakımı</option>
+                        <label for="service-category">Hizmet Kategorisi</label>
+                        <select id="service-category" name="service-category" required>
+                            <option value="">Kategori seçin</option>
+                            <option value="epilasyon">Epilasyon</option>
+                            <option value="zayiflama">Zayıflama</option>
+                            <option value="cilt-bakimi">Cilt Bakımı</option>
+                            <option value="sac-bakimi">Saç Bakımı</option>
+                            <option value="makyaj">Makyaj</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="date">Tarih</label>
-                        <input type="date" id="date" name="date" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="time">Saat</label>
-                        <select id="time" name="time" required>
-                            <option value="">Saat seçin</option>
-                            <option value="09:00">09:00</option>
-                            <option value="10:00">10:00</option>
-                            <option value="11:00">11:00</option>
-                            <option value="12:00">12:00</option>
-                            <option value="13:00">13:00</option>
-                            <option value="14:00">14:00</option>
-                            <option value="15:00">15:00</option>
-                            <option value="16:00">16:00</option>
-                            <option value="17:00">17:00</option>
-                            <option value="18:00">18:00</option>
+                    
+                    <div class="form-group" id="subcategory-group" style="display: none;">
+                        <label for="service-subcategory">Alt Kategori</label>
+                        <select id="service-subcategory" name="service-subcategory">
+                            <option value="">Alt kategori seçin</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="notes">Notlar</label>
-                        <textarea id="notes" name="notes" rows="3"></textarea>
+                    
+                    <div class="form-group" id="staff-group" style="display: none;">
+                        <label for="staff">Personel Seçimi</label>
+                        <select id="staff" name="staff">
+                            <option value="">Personel seçin</option>
+                        </select>
                     </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="date">Tarih</label>
+                            <input type="date" id="date" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="time">Saat</label>
+                            <select id="time" name="time" required>
+                                <option value="">Saat seçin</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notes">İşletmeye İletmek İstediğiniz Not</label>
+                        <textarea id="notes" name="notes" rows="3" placeholder="Özel isteklerinizi, alerjilerinizi veya notlarınızı yazabilirsiniz..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="auto-confirm" name="auto-confirm">
+                            <span class="checkmark"></span>
+                            Randevumu otomatik onayla
+                        </label>
+                    </div>
+                    
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-calendar-check"></i>
                         Randevu Al
@@ -245,6 +272,84 @@
                     <input type="password" id="regPassword" name="password" required>
                 </div>
                 <button type="submit" class="btn-submit">Kayıt Ol</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Phone Appointment Modal (for staff) -->
+    <div id="phoneAppointmentModal" class="modal">
+        <div class="modal-content phone-appointment-modal">
+            <span class="close" onclick="closeModal('phoneAppointmentModal')">&times;</span>
+            <h2><i class="fas fa-phone"></i> Telefon Randevu Alma</h2>
+            <form id="phoneAppointmentForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phoneName">Müşteri Ad Soyad</label>
+                        <input type="text" id="phoneName" name="name" required autocomplete="off">
+                        <div id="phone-customer-suggestions" class="suggestions"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="phonePhone">Telefon</label>
+                        <input type="tel" id="phonePhone" name="phone" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phoneServiceCategory">Hizmet Kategorisi</label>
+                    <select id="phoneServiceCategory" name="service-category" required>
+                        <option value="">Kategori seçin</option>
+                        <option value="epilasyon">Epilasyon</option>
+                        <option value="zayiflama">Zayıflama</option>
+                        <option value="cilt-bakimi">Cilt Bakımı</option>
+                        <option value="sac-bakimi">Saç Bakımı</option>
+                        <option value="makyaj">Makyaj</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="phoneSubcategoryGroup" style="display: none;">
+                    <label for="phoneServiceSubcategory">Alt Kategori</label>
+                    <select id="phoneServiceSubcategory" name="service-subcategory">
+                        <option value="">Alt kategori seçin</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="phoneStaffGroup" style="display: none;">
+                    <label for="phoneStaff">Personel Seçimi</label>
+                    <select id="phoneStaff" name="staff">
+                        <option value="">Personel seçin</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phoneDate">Tarih</label>
+                        <input type="date" id="phoneDate" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneTime">Saat</label>
+                        <select id="phoneTime" name="time" required>
+                            <option value="">Saat seçin</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phoneNotes">Notlar</label>
+                    <textarea id="phoneNotes" name="notes" rows="3" placeholder="Müşteri notları..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="phoneAutoConfirm" name="auto-confirm" checked>
+                        <span class="checkmark"></span>
+                        Randevuyu otomatik onayla
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-phone"></i>
+                    Randevu Oluştur
+                </button>
             </form>
         </div>
     </div>
