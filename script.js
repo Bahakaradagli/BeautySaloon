@@ -31,7 +31,7 @@ let push = null;
 let remove = null;
 
 // Service categories and subcategories
-const serviceCategories = {
+let serviceCategories = {
     'buz-lazer-epilasyon': {
         name: 'Buz Başlıklı Lazer Epilasyon',
         icon: 'fas fa-snowflake',
@@ -326,6 +326,18 @@ async function loadDataFromFirebase() {
             users = [adminUser];
         }
         
+        // Load service categories
+        console.log('Loading service categories from Firebase...');
+        await loadServiceCategoriesFromFirebase();
+        console.log('After Firebase load, categories count:', Object.keys(serviceCategories).length);
+        
+        // If no categories loaded from Firebase, try localStorage
+        if (Object.keys(serviceCategories).length === 0) {
+            console.log('No categories from Firebase, trying localStorage...');
+            loadServiceCategoriesFromLocalStorage();
+            console.log('After localStorage load, categories count:', Object.keys(serviceCategories).length);
+        }
+        
         console.log('Firebase data loaded successfully from AbeautySaloon');
     } catch (error) {
         console.error('Error loading data from Firebase:', error);
@@ -348,6 +360,9 @@ function loadFromLocalStorage() {
     settings = JSON.parse(localStorage.getItem('settings')) || settings;
     expenses = JSON.parse(localStorage.getItem('expenses')) || [];
     transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    
+    // Load service categories from localStorage
+    loadServiceCategoriesFromLocalStorage();
 }
 
 // Save data to Firebase
@@ -362,6 +377,146 @@ async function saveToFirebase(dataType, data) {
         console.error(`Error saving ${dataType} to Firebase:`, error);
         // Fallback to localStorage
         localStorage.setItem(dataType, JSON.stringify(data));
+    }
+}
+
+// Firebase Service Categories Management
+async function saveServiceCategoriesToFirebase() {
+    try {
+        if (database) {
+            const basePath = 'AbeautySaloon/serviceCategories';
+            await set(ref(database, basePath), serviceCategories);
+            console.log('Service categories saved to Firebase');
+        } else {
+            throw new Error('Firebase database not available');
+        }
+    } catch (error) {
+        console.error('Error saving service categories to Firebase:', error);
+        throw error;
+    }
+}
+
+async function loadServiceCategoriesFromFirebase() {
+    try {
+        if (database) {
+            const basePath = 'AbeautySaloon/serviceCategories';
+            const snapshot = await get(ref(database, basePath));
+            if (snapshot.exists()) {
+                const firebaseCategories = snapshot.val();
+                // Replace the entire serviceCategories object with Firebase data
+                serviceCategories = firebaseCategories;
+                
+                // Ensure all categories have subcategories array
+                Object.keys(serviceCategories).forEach(key => {
+                    if (!serviceCategories[key].subcategories || !Array.isArray(serviceCategories[key].subcategories)) {
+                        serviceCategories[key].subcategories = [];
+                    }
+                });
+                
+                console.log('Service categories loaded from Firebase:', serviceCategories);
+            } else {
+                console.log('No service categories found in Firebase, using default data');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading service categories from Firebase:', error);
+        // Fallback to localStorage
+        loadServiceCategoriesFromLocalStorage();
+    }
+}
+
+function loadServiceCategoriesFromLocalStorage() {
+    try {
+        const localCategories = localStorage.getItem('serviceCategories');
+        if (localCategories) {
+            const parsed = JSON.parse(localCategories);
+            serviceCategories = parsed;
+            
+            // Ensure all categories have subcategories array
+            Object.keys(serviceCategories).forEach(key => {
+                if (!serviceCategories[key].subcategories || !Array.isArray(serviceCategories[key].subcategories)) {
+                    serviceCategories[key].subcategories = [];
+                }
+            });
+            
+            console.log('Service categories loaded from localStorage:', serviceCategories);
+        } else {
+            console.log('No service categories found in localStorage, using default data');
+        }
+    } catch (error) {
+        console.error('Error loading service categories from localStorage:', error);
+    }
+}
+
+
+async function updateServiceCategoryInFirebase(categoryKey, categoryData) {
+    try {
+        if (database) {
+            const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
+            await set(ref(database, basePath), categoryData);
+            console.log(`Service category ${categoryKey} updated in Firebase`);
+        }
+    } catch (error) {
+        console.error('Error updating service category in Firebase:', error);
+        throw error;
+    }
+}
+
+async function deleteServiceCategoryFromFirebase(categoryKey) {
+    try {
+        if (database) {
+            const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
+            await remove(ref(database, basePath));
+            console.log(`Service category ${categoryKey} deleted from Firebase`);
+        }
+    } catch (error) {
+        console.error('Error deleting service category from Firebase:', error);
+        throw error;
+    }
+}
+
+async function addSubcategoryToFirebase(categoryKey, subcategoryData) {
+    try {
+        if (database) {
+            // Instead of using push, update the entire category with the new subcategories array
+            const categoryData = serviceCategories[categoryKey];
+            const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
+            await set(ref(database, basePath), categoryData);
+            console.log(`Subcategory added to Firebase for category ${categoryKey}`);
+        }
+    } catch (error) {
+        console.error('Error adding subcategory to Firebase:', error);
+        throw error;
+    }
+}
+
+async function updateSubcategoryInFirebase(categoryKey, subcategoryIndex, subcategoryData) {
+    try {
+        if (database) {
+            // Update the entire category with the updated subcategories array
+            const categoryData = serviceCategories[categoryKey];
+            const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
+            await set(ref(database, basePath), categoryData);
+            console.log(`Subcategory ${subcategoryIndex} updated in Firebase for category ${categoryKey}`);
+        }
+    } catch (error) {
+        console.error('Error updating subcategory in Firebase:', error);
+        throw error;
+    }
+}
+
+async function deleteSubcategoryFromFirebase(categoryKey, subcategoryIndex) {
+    try {
+        if (database) {
+            // Update the entire category with the updated subcategories array
+            const categoryData = serviceCategories[categoryKey];
+            const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
+            await set(ref(database, basePath), categoryData);
+            console.log(`Subcategory ${subcategoryIndex} deleted from Firebase for category ${categoryKey}`);
+        }
+    } catch (error) {
+        console.error('Error deleting subcategory from Firebase:', error);
+        throw error;
     }
 }
 
@@ -877,7 +1032,6 @@ function showAdminTab(tabName) {
     // Update section title and content
     const sectionTitles = {
         'appointments': { title: 'Randevu Yönetimi', icon: 'fas fa-calendar-alt' },
-        'phone-appointments': { title: 'Telefon Randevu Yönetimi', icon: 'fas fa-phone' },
         'revenue': { title: 'Gelir-Gider Takibi', icon: 'fas fa-chart-line' },
         'customers': { title: 'Müşteri Yönetimi', icon: 'fas fa-users' },
         'services': { title: 'Hizmet Yönetimi', icon: 'fas fa-spa' },
@@ -905,9 +1059,6 @@ function loadAdminTabContent(tabName) {
         case 'appointments':
             loadAppointmentsContent();
             break;
-        case 'phone-appointments':
-            loadPhoneAppointmentsContent();
-            break;
         case 'revenue':
             loadRevenueContent();
             break;
@@ -929,6 +1080,12 @@ function loadAdminTabContent(tabName) {
 // Load appointments content
 function loadAppointmentsContent() {
     const content = document.getElementById('admin-main-content');
+    
+    // Show admin filters for appointments section
+    const adminFilters = document.getElementById('admin-filters');
+    if (adminFilters) {
+        adminFilters.style.display = 'flex';
+    }
     
     const appointmentsHTML = `
         <div class="appointments-management">
@@ -1046,16 +1203,44 @@ function loadRevenueContent() {
 function loadServicesContent() {
     const content = document.getElementById('admin-main-content');
     
+    // Hide admin filters for services section
+    const adminFilters = document.getElementById('admin-filters');
+    if (adminFilters) {
+        adminFilters.style.display = 'none';
+    }
+    
     const contentHTML = `
         <div class="services-management">
             <div class="service-actions">
                 <button class="btn-primary" onclick="showAddServiceModal()">
-                    <i class="fas fa-plus"></i> Hizmet Ekle
+                    <i class="fas fa-plus"></i> Yeni Kategori Ekle
                 </button>
                 <button class="btn-secondary" onclick="showEditServiceModal()">
-                    <i class="fas fa-edit"></i> Hizmet Düzenle
+                    <i class="fas fa-edit"></i> Kategorileri Düzenle
+                </button>
+                <button class="btn-info" onclick="exportServices()">
+                    <i class="fas fa-download"></i> Hizmetleri Dışa Aktar
+                </button>
+                <button class="btn-warning" onclick="importServices()">
+                    <i class="fas fa-upload"></i> Hizmetleri İçe Aktar
                 </button>
             </div>
+            
+            <div class="services-stats">
+                <div class="stat-card">
+                    <h4>Toplam Kategori</h4>
+                    <span class="stat-number">${Object.keys(serviceCategories).length}</span>
+                </div>
+                <div class="stat-card">
+                    <h4>Toplam Alt Hizmet</h4>
+                    <span class="stat-number">${Object.values(serviceCategories).reduce((total, category) => total + category.subcategories.length, 0)}</span>
+                </div>
+                <div class="stat-card">
+                    <h4>Ortalama Fiyat</h4>
+                    <span class="stat-number">${calculateAveragePrice()}₺</span>
+                </div>
+            </div>
+            
             <div id="services-list"></div>
         </div>
     `;
@@ -1141,22 +1326,6 @@ function loadSettingsContent() {
     loadSettings();
 }
 
-// Load phone appointments content
-function loadPhoneAppointmentsContent() {
-    const content = document.getElementById('admin-main-content');
-    
-    const contentHTML = `
-        <div class="phone-appointments-management">
-            <h3>Telefon Randevu Yönetimi</h3>
-            <p>Telefon ile alınan randevular burada görüntülenir.</p>
-            <div class="phone-appointments-list">
-                <!-- Phone appointments will be loaded here -->
-            </div>
-        </div>
-    `;
-    
-    content.innerHTML = contentHTML;
-}
 
 // Go to home page function
 function goToHomePage() {
@@ -2160,45 +2329,226 @@ function loadServicesList() {
     if (!servicesList) return;
     
     let servicesHTML = '';
-    Object.keys(serviceCategories).forEach(categoryKey => {
-        const category = serviceCategories[categoryKey];
-        servicesHTML += `
-            <div class="service-category-item">
-                <div class="service-category-header">
-                    <h4>${category.name}</h4>
-                    <div class="service-category-actions">
-                        <button class="btn-sm btn-primary" onclick="editServiceCategory('${categoryKey}')">
-                            <i class="fas fa-edit"></i> Düzenle
-                        </button>
-                        <button class="btn-sm btn-danger" onclick="deleteServiceCategory('${categoryKey}')">
-                            <i class="fas fa-trash"></i> Sil
-                        </button>
-                    </div>
-                </div>
-                <div class="subcategory-list">
-                    ${category.subcategories.map(sub => `
-                        <div class="subcategory-item">
-                            <div class="subcategory-info">
-                                <span class="subcategory-name">${sub.name}</span>
-                                <span class="subcategory-duration">${sub.duration} dk</span>
-                                <span class="subcategory-price">${sub.price}₺</span>
-                            </div>
-                            <div class="subcategory-actions">
-                                <button class="btn-sm btn-secondary" onclick="editSubcategory('${categoryKey}', '${sub.value}')">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn-sm btn-danger" onclick="deleteSubcategory('${categoryKey}', '${sub.value}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
+    
+    if (Object.keys(serviceCategories).length === 0) {
+        servicesHTML = `
+            <div class="empty-state">
+                <i class="fas fa-spa"></i>
+                <h3>Henüz hizmet kategorisi yok</h3>
+                <p>Yeni hizmet kategorisi eklemek için "Yeni Kategori Ekle" butonuna tıklayın.</p>
             </div>
         `;
-    });
+    } else {
+        Object.keys(serviceCategories).forEach(categoryKey => {
+            const category = serviceCategories[categoryKey];
+            
+            // Ensure subcategories is an array
+            if (!category.subcategories || !Array.isArray(category.subcategories)) {
+                category.subcategories = [];
+            }
+            
+            servicesHTML += `
+                <div class="service-category-item">
+                    <div class="service-category-header">
+                        <div class="category-info">
+                            <i class="${category.icon}"></i>
+                            <h4>${category.name}</h4>
+                            <span class="category-count">${category.subcategories.length} alt hizmet</span>
+                        </div>
+                        <div class="service-category-actions">
+                            <button class="btn-sm btn-success" onclick="addSubcategory('${categoryKey}')">
+                                <i class="fas fa-plus"></i> Alt Hizmet Ekle
+                            </button>
+                            <button class="btn-sm btn-primary" onclick="editServiceCategory('${categoryKey}')">
+                                <i class="fas fa-edit"></i> Düzenle
+                            </button>
+                            <button class="btn-sm btn-danger" onclick="deleteServiceCategory('${categoryKey}')">
+                                <i class="fas fa-trash"></i> Sil
+                            </button>
+                        </div>
+                    </div>
+                    <div class="subcategory-list">
+                        ${category.subcategories && category.subcategories.length > 0 ? category.subcategories.map((sub, index) => `
+                            <div class="subcategory-item">
+                                <div class="subcategory-info">
+                                    <span class="subcategory-name">${sub.name}</span>
+                                    <span class="subcategory-duration">${sub.duration} dk</span>
+                                    <span class="subcategory-price">${sub.price}₺</span>
+                                </div>
+                                <div class="subcategory-actions">
+                                    <button class="btn-sm btn-warning" onclick="editSubcategory('${categoryKey}', ${index})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-sm btn-danger" onclick="deleteSubcategory('${categoryKey}', ${index})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('') : `
+                            <div class="empty-subcategory">
+                                <p>Bu kategoride henüz alt hizmet yok.</p>
+                                <button class="btn-sm btn-success" onclick="addSubcategory('${categoryKey}')">
+                                    <i class="fas fa-plus"></i> İlk Alt Hizmeti Ekle
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        });
+    }
     
     servicesList.innerHTML = servicesHTML;
+}
+
+// Calculate average price of all services
+function calculateAveragePrice() {
+    const allPrices = [];
+    Object.values(serviceCategories).forEach(category => {
+        if (category.subcategories && Array.isArray(category.subcategories)) {
+            category.subcategories.forEach(sub => {
+                if (sub.price && typeof sub.price === 'number') {
+                    allPrices.push(sub.price);
+                }
+            });
+        }
+    });
+    
+    if (allPrices.length === 0) return '0';
+    
+    const average = allPrices.reduce((sum, price) => sum + price, 0) / allPrices.length;
+    return Math.round(average);
+}
+
+// Edit subcategory
+function editSubcategory(categoryKey, subcategoryIndex) {
+    const category = serviceCategories[categoryKey];
+    const subcategory = category.subcategories[subcategoryIndex];
+    
+    const modalHTML = `
+        <div class="service-form">
+            <h3>Alt Hizmet Düzenle</h3>
+            <form id="editSubcategoryForm">
+                <div class="form-group">
+                    <label for="editSubcategoryName">Alt Hizmet Adı</label>
+                    <input type="text" id="editSubcategoryName" name="subcategoryName" value="${subcategory.name}" required>
+                </div>
+                <div class="form-group">
+                    <label for="editSubcategoryPrice">Fiyat (₺)</label>
+                    <input type="number" id="editSubcategoryPrice" name="subcategoryPrice" value="${subcategory.price}" required min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="editSubcategoryDuration">Süre (dakika)</label>
+                    <input type="number" id="editSubcategoryDuration" name="subcategoryDuration" value="${subcategory.duration}" required min="1">
+                </div>
+                <button type="submit" class="btn-submit">Güncelle</button>
+            </form>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'editSubcategoryModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editSubcategoryModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    document.getElementById('editSubcategoryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        const updatedSubcategory = {
+            name: formData.get('subcategoryName').trim(),
+            price: parseFloat(formData.get('subcategoryPrice')),
+            duration: parseInt(formData.get('subcategoryDuration'))
+        };
+        
+        try {
+            // Update local data
+            serviceCategories[categoryKey].subcategories[subcategoryIndex] = updatedSubcategory;
+            
+            // Update in Firebase
+            await updateSubcategoryInFirebase(categoryKey, subcategoryIndex, updatedSubcategory);
+            
+            // Also save to localStorage as backup
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
+            
+            closeModal('editSubcategoryModal');
+            loadServicesList();
+            alert('Alt hizmet başarıyla güncellendi!');
+        } catch (error) {
+            console.error('Error updating subcategory:', error);
+            alert('Alt hizmet güncellenirken hata oluştu. Lütfen tekrar deneyin.');
+        }
+    });
+}
+
+// Delete subcategory
+async function deleteSubcategory(categoryKey, subcategoryIndex) {
+    if (confirm('Bu alt hizmeti silmek istediğinizden emin misiniz?')) {
+        try {
+            // Remove from local data
+            serviceCategories[categoryKey].subcategories.splice(subcategoryIndex, 1);
+            
+            // Delete from Firebase
+            await deleteSubcategoryFromFirebase(categoryKey, subcategoryIndex);
+            
+            // Also save to localStorage as backup
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
+            
+            loadServicesList();
+            alert('Alt hizmet başarıyla silindi!');
+        } catch (error) {
+            console.error('Error deleting subcategory:', error);
+            alert('Alt hizmet silinirken hata oluştu. Lütfen tekrar deneyin.');
+        }
+    }
+}
+
+// Export services
+function exportServices() {
+    const dataStr = JSON.stringify(serviceCategories, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'services-backup.json';
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+// Import services
+function importServices() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (confirm('Mevcut hizmetler silinecek ve yeni hizmetler yüklenecek. Devam etmek istiyor musunuz?')) {
+                        Object.assign(serviceCategories, importedData);
+                        localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
+                        loadServicesList();
+                        alert('Hizmetler başarıyla içe aktarıldı!');
+                    }
+                } catch (error) {
+                    alert('Dosya formatı hatalı!');
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
+    input.click();
 }
 
 // Load staff list
@@ -2661,7 +3011,8 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'none';
-        if (modalId === 'adminModal') {
+        // Remove modal from DOM for certain modals to prevent event listener issues
+        if (modalId === 'adminModal' || modalId === 'iconPickerModal' || modalId === 'addServiceModal') {
             modal.remove();
         }
     }
@@ -2751,11 +3102,22 @@ window.onclick = function(event) {
     });
 }
 
-// Add fade-in class to elements
+// Add fade-in class to elements (excluding admin panel and service management elements)
 document.addEventListener('DOMContentLoaded', function() {
     const elements = document.querySelectorAll('.service-card, .contact-item, .appointment-form');
     elements.forEach(element => {
-        element.classList.add('fade-in');
+        // Only apply fade-in to elements that are NOT in admin panel or service management
+        const isInAdminPanel = element.closest('#admin-panel') || 
+                              element.closest('.admin-panel-section') ||
+                              element.closest('.admin-main-content') ||
+                              element.closest('.services-management') ||
+                              element.closest('.service-categories-list') ||
+                              element.closest('.edit-category-item') ||
+                              element.classList.contains('edit-category-item');
+        
+        if (!isInAdminPanel) {
+            element.classList.add('fade-in');
+        }
     });
 });
 
@@ -3267,12 +3629,17 @@ function showAddServiceModal() {
                     <input type="text" id="serviceCategoryName" name="categoryName" required placeholder="Örn: Cilt Bakımları">
                 </div>
                 <div class="form-group">
-                    <label for="serviceCategoryIcon">İkon (FontAwesome class)</label>
-                    <input type="text" id="serviceCategoryIcon" name="categoryIcon" required placeholder="fas fa-leaf">
-                </div>
-                <div class="form-group">
-                    <label for="serviceCategoryKey">Kategori Anahtarı</label>
-                    <input type="text" id="serviceCategoryKey" name="categoryKey" required placeholder="cilt-bakimlari">
+                    <label for="serviceCategoryIcon">İkon</label>
+                    <div class="icon-input-group">
+                        <input type="text" id="serviceCategoryIcon" name="categoryIcon" required placeholder="İkon seçmek için butona tıklayın" readonly>
+                        <button type="button" class="btn-icon-picker" onclick="showIconPicker('', 'serviceCategoryIcon')">
+                            <i class="fas fa-palette"></i> İkon Seç
+                        </button>
+                    </div>
+                    <div id="selectedIconPreview" style="margin-top: 10px; display: none;">
+                        <span>Seçilen İkon: </span>
+                        <i id="previewIcon" style="font-size: 1.2rem; margin-left: 5px;"></i>
+                    </div>
                 </div>
                 <button type="submit" class="btn-submit">Kategori Ekle</button>
             </form>
@@ -3332,6 +3699,463 @@ function showEditServiceModal() {
     
     document.body.appendChild(modal);
     modal.style.display = 'block';
+}
+
+// Handle add service form submission
+async function handleAddServiceSubmit(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const categoryName = formData.get('categoryName').trim();
+    const categoryIcon = formData.get('categoryIcon').trim();
+    
+    // Debug logging
+    console.log('Form submission debug:');
+    console.log('Category Name:', categoryName);
+    console.log('Category Icon:', categoryIcon);
+    console.log('Form data entries:', Array.from(formData.entries()));
+    
+    if (!categoryName || !categoryIcon) {
+        alert('Lütfen tüm alanları doldurun!\nKategori Adı: ' + (categoryName ? '✓' : '✗') + '\nİkon: ' + (categoryIcon ? '✓' : '✗'));
+        return;
+    }
+    
+    // Generate category key from category name
+    const categoryKey = categoryName
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .trim();
+    
+    console.log('Generated category key:', categoryKey);
+    
+    // Check if category key already exists
+    if (serviceCategories[categoryKey]) {
+        alert('Bu kategori adı zaten kullanılıyor! Lütfen farklı bir isim seçin.');
+        return;
+    }
+    
+    // Add new service category
+    serviceCategories[categoryKey] = {
+        name: categoryName,
+        icon: categoryIcon,
+        subcategories: []
+    };
+    
+    console.log('Added category:', serviceCategories[categoryKey]);
+    
+    try {
+        // Save to Firebase
+        await saveServiceCategoriesToFirebase();
+        
+        // Also save to localStorage as backup
+        localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
+        
+        // Close modal and refresh services list
+        closeModal('addServiceModal');
+        loadServicesList();
+        
+        alert('Hizmet kategorisi başarıyla eklendi!');
+    } catch (error) {
+        console.error('Error saving service category:', error);
+        alert('Kategori kaydedilirken hata oluştu. Lütfen tekrar deneyin.');
+    }
+}
+
+// Icon picker data
+const iconCategories = {
+    'beauty': {
+        name: 'Güzellik & Bakım',
+        icons: [
+            { class: 'fas fa-spa', name: 'Spa' },
+            { class: 'fas fa-leaf', name: 'Doğal' },
+            { class: 'fas fa-heart', name: 'Kalp' },
+            { class: 'fas fa-star', name: 'Yıldız' },
+            { class: 'fas fa-gem', name: 'Elmas' },
+            { class: 'fas fa-crown', name: 'Taç' },
+            { class: 'fas fa-magic', name: 'Sihir' },
+            { class: 'fas fa-sparkles', name: 'Parlaklık' }
+        ]
+    },
+    'medical': {
+        name: 'Tıbbi & Estetik',
+        icons: [
+            { class: 'fas fa-user-md', name: 'Doktor' },
+            { class: 'fas fa-stethoscope', name: 'Stetoskop' },
+            { class: 'fas fa-syringe', name: 'Şırınga' },
+            { class: 'fas fa-pills', name: 'İlaç' },
+            { class: 'fas fa-band-aid', name: 'Yara Bandı' },
+            { class: 'fas fa-thermometer-half', name: 'Termometre' },
+            { class: 'fas fa-microscope', name: 'Mikroskop' },
+            { class: 'fas fa-x-ray', name: 'Röntgen' }
+        ]
+    },
+    'body': {
+        name: 'Vücut & Fitness',
+        icons: [
+            { class: 'fas fa-dumbbell', name: 'Ağırlık' },
+            { class: 'fas fa-running', name: 'Koşu' },
+            { class: 'fas fa-bicycle', name: 'Bisiklet' },
+            { class: 'fas fa-swimmer', name: 'Yüzme' },
+            { class: 'fas fa-weight', name: 'Kilo' },
+            { class: 'fas fa-fire', name: 'Ateş' },
+            { class: 'fas fa-bolt', name: 'Şimşek' },
+            { class: 'fas fa-trophy', name: 'Kupa' }
+        ]
+    },
+    'face': {
+        name: 'Yüz & Cilt',
+        icons: [
+            { class: 'fas fa-eye', name: 'Göz' },
+            { class: 'fas fa-smile', name: 'Gülümseme' },
+            { class: 'fas fa-kiss', name: 'Öpücük' },
+            { class: 'fas fa-mask', name: 'Maske' },
+            { class: 'fas fa-sun', name: 'Güneş' },
+            { class: 'fas fa-moon', name: 'Ay' },
+            { class: 'fas fa-cloud-sun', name: 'Bulutlu Güneş' },
+            { class: 'fas fa-rainbow', name: 'Gökkuşağı' }
+        ]
+    },
+    'hands': {
+        name: 'El & Ayak',
+        icons: [
+            { class: 'fas fa-hand-paper', name: 'El' },
+            { class: 'fas fa-hand-rock', name: 'Yumruk' },
+            { class: 'fas fa-hand-peace', name: 'Barış' },
+            { class: 'fas fa-hand-point-up', name: 'İşaret' },
+            { class: 'fas fa-fingerprint', name: 'Parmak İzi' },
+            { class: 'fas fa-ring', name: 'Yüzük' },
+            { class: 'fas fa-gem', name: 'Mücevher' },
+            { class: 'fas fa-crown', name: 'Taç' }
+        ]
+    },
+    'tools': {
+        name: 'Araçlar & Ekipman',
+        icons: [
+            { class: 'fas fa-tools', name: 'Araçlar' },
+            { class: 'fas fa-cut', name: 'Makas' },
+            { class: 'fas fa-palette', name: 'Palet' },
+            { class: 'fas fa-paint-brush', name: 'Fırça' },
+            { class: 'fas fa-spray-can', name: 'Sprey' },
+            { class: 'fas fa-bottle-droplet', name: 'Damla' },
+            { class: 'fas fa-flask', name: 'Şişe' },
+            { class: 'fas fa-vial', name: 'Tüp' }
+        ]
+    }
+};
+
+// Show icon picker modal
+function showIconPicker(currentIcon = '', targetInputId = '') {
+    // Remove existing modal if it exists
+    const existingModal = document.getElementById('iconPickerModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modalHTML = `
+        <div class="icon-picker-modal">
+            <h3>İkon Seçin</h3>
+            <div class="icon-picker-search">
+                <input type="text" id="iconSearch" placeholder="İkon ara..." class="icon-search-input">
+            </div>
+            <div class="icon-categories">
+                ${Object.keys(iconCategories).map(categoryKey => {
+                    const category = iconCategories[categoryKey];
+                    return `
+                        <div class="icon-category">
+                            <h4>${category.name}</h4>
+                            <div class="icon-grid">
+                                ${category.icons.map(icon => `
+                                    <div class="icon-item ${currentIcon === icon.class ? 'selected' : ''}" 
+                                         data-icon="${icon.class}" 
+                                         data-name="${icon.name}">
+                                        <i class="${icon.class}"></i>
+                                        <span>${icon.name}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            <div class="icon-picker-actions">
+                <button class="btn-secondary" onclick="closeModal('iconPickerModal')">İptal</button>
+                <button class="btn-primary" id="selectIconBtn" disabled>Seç</button>
+            </div>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'iconPickerModal';
+    modal.innerHTML = `
+        <div class="modal-content icon-picker-content">
+            <span class="close" onclick="closeModal('iconPickerModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    // Store target input ID for later use
+    modal.dataset.targetInput = targetInputId;
+    
+    // Add event listeners with a small delay to ensure DOM is ready
+    setTimeout(() => {
+        setupIconPickerEvents();
+    }, 100);
+}
+
+// Setup icon picker event listeners
+function setupIconPickerEvents() {
+    const modal = document.getElementById('iconPickerModal');
+    if (!modal) return;
+    
+    let selectedIcon = '';
+    const selectBtn = document.getElementById('selectIconBtn');
+    const searchInput = document.getElementById('iconSearch');
+    
+    // Remove any existing event listeners by cloning the modal
+    const newModal = modal.cloneNode(true);
+    modal.parentNode.replaceChild(newModal, modal);
+    
+    // Get fresh references to elements
+    const freshModal = document.getElementById('iconPickerModal');
+    const freshSelectBtn = document.getElementById('selectIconBtn');
+    const freshSearchInput = document.getElementById('iconSearch');
+    
+    // Icon selection - use event delegation
+    freshModal.addEventListener('click', (e) => {
+        const iconItem = e.target.closest('.icon-item');
+        if (iconItem) {
+            console.log('Icon clicked:', iconItem.dataset.icon);
+            // Remove previous selection
+            freshModal.querySelectorAll('.icon-item').forEach(item => item.classList.remove('selected'));
+            
+            // Add selection to clicked item
+            iconItem.classList.add('selected');
+            selectedIcon = iconItem.dataset.icon;
+            console.log('Selected icon set to:', selectedIcon);
+            if (freshSelectBtn) {
+                freshSelectBtn.disabled = false;
+                console.log('Select button enabled');
+            }
+        }
+    });
+    
+    // Search functionality
+    if (freshSearchInput) {
+        freshSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const iconItems = freshModal.querySelectorAll('.icon-item');
+            
+            iconItems.forEach(item => {
+                const iconName = item.dataset.name.toLowerCase();
+                const iconClass = item.dataset.icon.toLowerCase();
+                const matches = iconName.includes(searchTerm) || iconClass.includes(searchTerm);
+                
+                item.style.display = matches ? 'flex' : 'none';
+            });
+        });
+    }
+    
+    // Select button
+    if (freshSelectBtn) {
+        freshSelectBtn.addEventListener('click', () => {
+            if (selectedIcon) {
+                const targetInputId = freshModal.dataset.targetInput;
+                const targetInput = document.getElementById(targetInputId);
+                console.log('Icon picker debug:');
+                console.log('Selected icon:', selectedIcon);
+                console.log('Target input ID:', targetInputId);
+                console.log('Target input element:', targetInput);
+                
+                if (targetInput) {
+                    targetInput.value = selectedIcon;
+                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log('Icon set to input:', targetInput.value);
+                    
+                    // Update preview if it exists
+                    const preview = document.getElementById('selectedIconPreview');
+                    const previewIcon = document.getElementById('previewIcon');
+                    if (preview && previewIcon) {
+                        previewIcon.className = selectedIcon;
+                        preview.style.display = 'block';
+                    }
+                } else {
+                    console.error('Target input not found:', targetInputId);
+                }
+                closeModal('iconPickerModal');
+            } else {
+                console.log('No icon selected');
+            }
+        });
+    }
+}
+
+// Edit service category details
+function editCategoryDetails(categoryKey) {
+    const category = serviceCategories[categoryKey];
+    if (!category) return;
+    
+    const modalHTML = `
+        <div class="service-form">
+            <h3>Kategori Düzenle</h3>
+            <form id="editCategoryForm">
+                <div class="form-group">
+                    <label for="editCategoryName">Kategori Adı</label>
+                    <input type="text" id="editCategoryName" name="categoryName" value="${category.name}" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCategoryIcon">İkon</label>
+                    <div class="icon-input-group">
+                        <input type="text" id="editCategoryIcon" name="categoryIcon" value="${category.icon}" required readonly>
+                        <button type="button" class="btn-icon-picker" onclick="showIconPicker('${category.icon}', 'editCategoryIcon')">
+                            <i class="fas fa-palette"></i> İkon Seç
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">Güncelle</button>
+            </form>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'editCategoryModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editCategoryModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    document.getElementById('editCategoryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        const updatedCategory = {
+            name: formData.get('categoryName').trim(),
+            icon: formData.get('categoryIcon').trim(),
+            subcategories: serviceCategories[categoryKey].subcategories
+        };
+        
+        try {
+            // Update local data
+            serviceCategories[categoryKey] = updatedCategory;
+            
+            // Update in Firebase
+            await updateServiceCategoryInFirebase(categoryKey, updatedCategory);
+            
+            // Also save to localStorage as backup
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
+            
+            closeModal('editCategoryModal');
+            loadServicesList();
+            alert('Kategori başarıyla güncellendi!');
+        } catch (error) {
+            console.error('Error updating category:', error);
+            alert('Kategori güncellenirken hata oluştu. Lütfen tekrar deneyin.');
+        }
+    });
+}
+
+// Add subcategory to service category
+function addSubcategory(categoryKey) {
+    const modalHTML = `
+        <div class="service-form">
+            <h3>Alt Hizmet Ekle</h3>
+            <form id="addSubcategoryForm">
+                <div class="form-group">
+                    <label for="subcategoryName">Alt Hizmet Adı</label>
+                    <input type="text" id="subcategoryName" name="subcategoryName" required placeholder="Örn: Hydrafacial cilt bakımı">
+                </div>
+                <div class="form-group">
+                    <label for="subcategoryPrice">Fiyat (₺)</label>
+                    <input type="number" id="subcategoryPrice" name="subcategoryPrice" required placeholder="300" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="subcategoryDuration">Süre (dakika)</label>
+                    <input type="number" id="subcategoryDuration" name="subcategoryDuration" required placeholder="60" min="1">
+                </div>
+                <button type="submit" class="btn-submit">Alt Hizmet Ekle</button>
+            </form>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'addSubcategoryModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addSubcategoryModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    document.getElementById('addSubcategoryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        const newSubcategory = {
+            name: formData.get('subcategoryName').trim(),
+            price: parseFloat(formData.get('subcategoryPrice')),
+            duration: parseInt(formData.get('subcategoryDuration'))
+        };
+        
+        try {
+            // Add to local data
+            serviceCategories[categoryKey].subcategories.push(newSubcategory);
+            
+            // Add to Firebase
+            await addSubcategoryToFirebase(categoryKey, newSubcategory);
+            
+            // Also save to localStorage as backup
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
+            
+            closeModal('addSubcategoryModal');
+            loadServicesList();
+            
+            alert('Alt hizmet başarıyla eklendi!');
+        } catch (error) {
+            console.error('Error adding subcategory:', error);
+            alert('Alt hizmet eklenirken hata oluştu. Lütfen tekrar deneyin.');
+        }
+    });
+}
+
+// Edit service category (inline)
+function editServiceCategory(categoryKey) {
+    editCategoryDetails(categoryKey);
+}
+
+// Delete service category
+async function deleteServiceCategory(categoryKey) {
+    if (confirm('Bu kategoriyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+        try {
+            // Remove from local data
+            delete serviceCategories[categoryKey];
+            
+            // Delete from Firebase
+            await deleteServiceCategoryFromFirebase(categoryKey);
+            
+            // Also save to localStorage as backup
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
+            
+            loadServicesList();
+            alert('Kategori başarıyla silindi!');
+        } catch (error) {
+            console.error('Error deleting service category:', error);
+            alert('Kategori silinirken hata oluştu. Lütfen tekrar deneyin.');
+        }
+    }
 }
 
 // Personel Maaş Yönetimi
@@ -3914,3 +4738,14 @@ window.cancelAppointment = cancelAppointment;
 window.addAdditionalService = addAdditionalService;
 window.removeAdditionalService = removeAdditionalService;
 window.completeAppointment = completeAppointment;
+window.handleAddServiceSubmit = handleAddServiceSubmit;
+window.editCategoryDetails = editCategoryDetails;
+window.addSubcategory = addSubcategory;
+window.editServiceCategory = editServiceCategory;
+window.deleteServiceCategory = deleteServiceCategory;
+window.editSubcategory = editSubcategory;
+window.deleteSubcategory = deleteSubcategory;
+window.exportServices = exportServices;
+window.importServices = importServices;
+window.showIconPicker = showIconPicker;
+window.setupIconPickerEvents = setupIconPickerEvents;
