@@ -31,96 +31,17 @@ let push = null;
 let remove = null;
 
 // Service categories and subcategories
-let serviceCategories = {
-    'buz-lazer-epilasyon': {
-        name: 'Buz Başlıklı Lazer Epilasyon',
-        icon: 'fas fa-snowflake',
-        subcategories: [
-            { value: 'buz-lazer-epilasyon', name: 'Buz Başlıklı Lazer Epilasyon', duration: 60, price: 400 }
-        ]
-    },
-    'cilt-bakimlari': {
-        name: 'Cilt Bakımları',
-        icon: 'fas fa-leaf',
-        subcategories: [
-            { value: 'hydrafacial', name: 'Hydrafacial Cilt Bakımı', duration: 60, price: 300 },
-            { value: 'medikal-cilt', name: 'Medikal Cilt Bakımı', duration: 45, price: 250 },
-            { value: 'karbon-peeling', name: 'Karbon Peeling', duration: 30, price: 200 },
-            { value: 'dermapen', name: 'Dermapen', duration: 45, price: 350 },
-            { value: 'leke-protokolu', name: 'Leke Protokolü', duration: 60, price: 400 },
-            { value: 'akne-protokolu', name: 'Akne Protokolü', duration: 60, price: 400 },
-            { value: 'ameliyatsiz-yuz-germe', name: 'Ameliyatsız Yüz Germe', duration: 90, price: 600 }
-        ]
-    },
-    'el-ayak-bakimi': {
-        name: 'El Ayak Bakımı',
-        icon: 'fas fa-hand-paper',
-        subcategories: [
-            { value: 'manikur', name: 'Manikür', duration: 45, price: 150 },
-            { value: 'pedikur', name: 'Pedikür', duration: 60, price: 200 },
-            { value: 'kalici-oje', name: 'Kalıcı Oje', duration: 90, price: 300 },
-            { value: 'ayak-detox', name: 'Ayak Detox', duration: 30, price: 100 }
-        ]
-    },
-    'kalici-makyaj': {
-        name: 'Kalıcı Makyaj Uygulamaları',
-        icon: 'fas fa-palette',
-        subcategories: [
-            { value: 'kalici-kas-kil', name: 'Kalıcı Kaş Kıl Tekniği', duration: 120, price: 500 },
-            { value: 'kalici-eyeliner', name: 'Kalıcı Eyeliner', duration: 90, price: 400 },
-            { value: 'kalici-dudak', name: 'Kalıcı Dudak Renklendirme', duration: 90, price: 450 },
-            { value: 'kirpik-lifting', name: 'Kirpik Lifting', duration: 60, price: 200 },
-            { value: 'kalici-kas-silme', name: 'Kalıcı Kaş Silme', duration: 60, price: 300 },
-            { value: 'renkli-dovme-silme', name: 'Renkli Dövme Silme', duration: 90, price: 400 },
-            { value: 'dovme-silme', name: 'Dövme Silme', duration: 90, price: 350 }
-        ]
-    },
-    'zayiflama-islemleri': {
-        name: 'Zayıflama İşlemleri',
-        icon: 'fas fa-weight',
-        subcategories: [
-            { value: 'ems-zayiflama', name: 'EMS Zayıflama', duration: 45, price: 350 },
-            { value: 'selulit-sikilasma', name: 'Selülit ve Sıkılaşma', duration: 60, price: 400 },
-            { value: 'soguk-lipoliz', name: 'Soğuk Lipoliz', duration: 90, price: 500 },
-            { value: 'kavitasyon', name: 'Kavitasyon', duration: 60, price: 400 },
-            { value: 'g5-masaji', name: 'G5 Masajı', duration: 45, price: 300 },
-            { value: 'lenf-drenaj', name: 'Lenf Drenaj', duration: 60, price: 250 },
-            { value: 'pasif-jimnastik', name: 'Pasif Jimnastik', duration: 45, price: 200 }
-        ]
-    },
-    'vucut-bakimlari': {
-        name: 'Vücut Bakımları',
-        icon: 'fas fa-spa',
-        subcategories: [
-            { value: 'agda', name: 'Ağda', duration: 30, price: 200 },
-            { value: 'kas-biyik', name: 'Kaş Bıyık', duration: 15, price: 100 },
-            { value: 'masaj', name: 'Masaj', duration: 60, price: 300 }
-        ]
-    }
-};
+// Service categories - Start with empty object, will be loaded from Firebase
+let serviceCategories = {};
 
-// Staff data
-const defaultStaff = [
-    { id: 1, name: 'Ayşe Yılmaz', specialty: 'Epilasyon', avatar: '👩‍⚕️' },
-    { id: 2, name: 'Fatma Demir', specialty: 'Cilt Bakımı', avatar: '👩‍⚕️' },
-    { id: 3, name: 'Zeynep Kaya', specialty: 'Saç Bakımı', avatar: '👩‍⚕️' },
-    { id: 4, name: 'Elif Özkan', specialty: 'Makyaj', avatar: '👩‍⚕️' }
-];
+// Staff data - Start with empty array, will be loaded from Firebase
+const defaultStaff = [];
 
-// Initialize staff if empty
-if (staff.length === 0) {
-    staff = defaultStaff;
-    localStorage.setItem('staff', JSON.stringify(staff));
-    console.log('Staff initialized with default data:', staff);
-} else {
-    console.log('Staff loaded from storage:', staff);
-}
-
-// Initialize admin user
+// Admin user will be created in Firebase
 const adminUser = {
     id: 1,
     name: 'Admin',
-    email: 'admin@gmail.com',
+    email: 'admingülcemal@gmail.com',
     password: '123456789',
     role: 'admin',
     createdAt: new Date().toISOString()
@@ -192,6 +113,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup event listeners first
     setupEventListeners();
     
+    // Check if user is already logged in on page load
+    checkUserLoginStatus();
+    
     // Wait for Firebase to load
     const checkFirebase = setInterval(() => {
         if (window.firebase) {
@@ -207,6 +131,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 ref = module.ref;
                 push = module.push;
                 remove = module.remove;
+                
+                console.log('Firebase database functions loaded:', { get: !!get, set: !!set, ref: !!ref, push: !!push, remove: !!remove });
+                console.log('Database object:', database);
                 
                 clearInterval(checkFirebase);
                 
@@ -275,9 +202,272 @@ function autoFillAppointmentForm() {
     }
 }
 
+// Load services for homepage
+async function loadHomepageServices() {
+    const servicesGrid = document.getElementById('services-grid');
+    if (!servicesGrid) return;
+    
+    try {
+        // Load service categories from Firebase
+        await loadServiceCategoriesFromFirebase();
+        
+        let servicesHTML = '';
+        
+        if (Object.keys(serviceCategories).length === 0) {
+            servicesHTML = `
+                <div class="empty-services">
+                    <i class="fas fa-spa"></i>
+                    <h3>Henüz hizmet eklenmemiş</h3>
+                    <p>Hizmetler yakında eklenecek</p>
+                </div>
+            `;
+        } else {
+            // Generate services from categories and subcategories
+            Object.values(serviceCategories).forEach(category => {
+                // Show category card
+                servicesHTML += `
+                    <div class="service-category-card">
+                        <div class="category-header">
+                            <h3>${category.name}</h3>
+                        </div>
+                        <div class="subcategories-grid">
+                `;
+                
+                // Show subcategories
+                if (category.subcategories && category.subcategories.length > 0) {
+                    category.subcategories.forEach(subcategory => {
+                        servicesHTML += `
+                            <div class="subcategory-card" onclick="selectServiceForAppointment('${subcategory.name}', ${subcategory.price}, ${subcategory.duration})">
+                                <h4>${subcategory.name}</h4>
+                                <div class="subcategory-details">
+                                    <span class="price">${subcategory.price}₺</span>
+                                    <span class="duration">${subcategory.duration}dk</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    servicesHTML += `
+                        <div class="no-subcategories">
+                            <p>Bu kategoride henüz hizmet yok</p>
+                        </div>
+                    `;
+                }
+                
+                servicesHTML += `
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        servicesGrid.innerHTML = servicesHTML;
+    } catch (error) {
+        console.error('Error loading homepage services:', error);
+        servicesGrid.innerHTML = `
+            <div class="error-services">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Hizmetler yüklenemedi</h3>
+                <p>Lütfen sayfayı yenileyin</p>
+            </div>
+        `;
+    }
+}
+
+// Load service categories for appointment form
+async function loadAppointmentServiceCategories() {
+    const categoryCards = document.getElementById('service-category-cards');
+    if (!categoryCards) return;
+    
+    try {
+        // Load service categories from Firebase
+        await loadServiceCategoriesFromFirebase();
+        
+        let categoriesHTML = '';
+        
+        if (Object.keys(serviceCategories).length === 0) {
+            categoriesHTML = `
+                <div class="empty-categories">
+                    <i class="fas fa-spa"></i>
+                    <h3>Henüz hizmet kategorisi yok</h3>
+                    <p>Hizmet kategorileri yakında eklenecek</p>
+                </div>
+            `;
+        } else {
+            // Generate categories from Firebase data
+            Object.entries(serviceCategories).forEach(([categoryKey, category]) => {
+                categoriesHTML += `
+                    <div class="service-category-card" data-category="${categoryKey}" onclick="selectServiceCategory('${categoryKey}')">
+                        <h4>${category.name}</h4>
+                    </div>
+                `;
+            });
+        }
+        
+        categoryCards.innerHTML = categoriesHTML;
+    } catch (error) {
+        console.error('Error loading appointment service categories:', error);
+        categoryCards.innerHTML = `
+            <div class="error-categories">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Hizmet kategorileri yüklenemedi</h3>
+                <p>Lütfen sayfayı yenileyin</p>
+            </div>
+        `;
+    }
+}
+
+// Select service category
+function selectServiceCategory(categoryKey) {
+    // Remove previous selection
+    document.querySelectorAll('.service-category-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add selection to clicked card
+    const selectedCard = document.querySelector(`[data-category="${categoryKey}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+    }
+    
+    // Set hidden input value
+    document.getElementById('service-category').value = categoryKey;
+    
+    // Load subcategories
+    loadAppointmentSubcategories(categoryKey);
+    
+    // Show subcategory group
+    document.getElementById('subcategory-group').style.display = 'block';
+}
+
+// Load subcategories for selected category
+function loadAppointmentSubcategories(categoryKey) {
+    const subcategoryCards = document.getElementById('subcategory-cards');
+    if (!subcategoryCards) return;
+    
+    const category = serviceCategories[categoryKey];
+    if (!category || !category.subcategories) {
+        subcategoryCards.innerHTML = `
+            <div class="no-subcategories">
+                <i class="fas fa-info-circle"></i>
+                <p>Bu kategoride henüz alt hizmet yok</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let subcategoriesHTML = '';
+    category.subcategories.forEach((subcategory, index) => {
+        subcategoriesHTML += `
+            <div class="service-category-card subcategory-card" data-subcategory="${subcategory.value || subcategory.name}" onclick="selectServiceSubcategory('${subcategory.value || subcategory.name}')">
+                <h4>${subcategory.name}</h4>
+                <div class="subcategory-info">
+                    <span class="price">${subcategory.price}₺</span>
+                    <span class="duration">${subcategory.duration}dk</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    subcategoryCards.innerHTML = subcategoriesHTML;
+}
+
+// Select service subcategory
+function selectServiceSubcategory(subcategoryValue) {
+    // Remove previous selection
+    document.querySelectorAll('.subcategory-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add selection to clicked card
+    const selectedCard = document.querySelector(`[data-subcategory="${subcategoryValue}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+    }
+    
+    // Set hidden input value
+    document.getElementById('service-subcategory').value = subcategoryValue;
+    
+    // Store service details in data attributes for later use
+    const serviceCategory = document.getElementById('service-category').value;
+    if (serviceCategory && serviceCategories[serviceCategory]) {
+        const serviceDetails = serviceCategories[serviceCategory].subcategories.find(sub => 
+            sub.value === subcategoryValue || sub.name === subcategoryValue
+        );
+        
+        console.log('Service category:', serviceCategory);
+        console.log('Subcategory value:', subcategoryValue);
+        console.log('Service details found:', serviceDetails);
+        
+        if (serviceDetails) {
+            // Store service details in hidden inputs
+            const serviceNameInput = document.getElementById('service-name');
+            const servicePriceInput = document.getElementById('service-price');
+            const serviceDurationInput = document.getElementById('service-duration');
+            
+            if (serviceNameInput) {
+                serviceNameInput.value = serviceDetails.name;
+                console.log('Service name set:', serviceDetails.name);
+            }
+            if (servicePriceInput) {
+                servicePriceInput.value = serviceDetails.price;
+                console.log('Service price set:', serviceDetails.price);
+            }
+            if (serviceDurationInput) {
+                serviceDurationInput.value = serviceDetails.duration;
+                console.log('Service duration set:', serviceDetails.duration);
+            }
+        } else {
+            console.warn('Service details not found for:', subcategoryValue);
+        }
+    } else {
+        console.warn('Service category not found:', serviceCategory);
+    }
+}
+
+// Select service for appointment
+function selectServiceForAppointment(serviceName, servicePrice, serviceDuration) {
+    // Fill the appointment form with selected service
+    const serviceSelect = document.getElementById('service');
+    if (serviceSelect) {
+        // Create option if it doesn't exist
+        let option = serviceSelect.querySelector(`option[value="${serviceName}"]`);
+        if (!option) {
+            option = document.createElement('option');
+            option.value = serviceName;
+            option.textContent = serviceName;
+            serviceSelect.appendChild(option);
+        }
+        serviceSelect.value = serviceName;
+    }
+    
+    // Update price and duration if fields exist
+    const priceField = document.getElementById('price');
+    if (priceField) {
+        priceField.value = servicePrice;
+    }
+    
+    const durationField = document.getElementById('duration');
+    if (durationField) {
+        durationField.value = serviceDuration;
+    }
+    
+    // Scroll to appointment section
+    document.getElementById('appointment').scrollIntoView({ behavior: 'smooth' });
+    
+    // Show success message
+    showSuccessMessage('Hizmet seçildi! Randevu formunu doldurun.');
+}
+
 // Firebase data management functions
 async function loadDataFromFirebase() {
     try {
+        if (!database || !get || !ref || !set) {
+            console.warn('Firebase database functions not available, loading from localStorage');
+            loadFromLocalStorage();
+            return;
+        }
+        
         const basePath = 'AbeautySaloon';
         
         // Load appointments
@@ -296,10 +486,6 @@ async function loadDataFromFirebase() {
         const staffSnapshot = await get(ref(database, `${basePath}/staff`));
         if (staffSnapshot.exists()) {
             staff = Object.values(staffSnapshot.val());
-        } else {
-            // Initialize default staff
-            await set(ref(database, `${basePath}/staff`), defaultStaff);
-            staff = defaultStaff;
         }
         
         // Load settings
@@ -339,20 +525,74 @@ async function loadDataFromFirebase() {
         }
         
         console.log('Firebase data loaded successfully from AbeautySaloon');
+        
+        // Load homepage services
+        await loadHomepageServices();
+        
+        // Load appointment form service categories
+        await loadAppointmentServiceCategories();
+        
+        // Check remember me
+        checkRememberMe();
     } catch (error) {
         console.error('Error loading data from Firebase:', error);
         // Fallback to localStorage
         loadFromLocalStorage();
+        
+        // Still try to load homepage services and appointment categories
+        await loadHomepageServices();
+        await loadAppointmentServiceCategories();
+        
+        // Check remember me
+        checkRememberMe();
+    }
+}
+
+// Check user login status on page load
+function checkUserLoginStatus() {
+    // Load current user from localStorage
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            console.log('User found in localStorage:', currentUser);
+            
+            // Update navigation for logged in user
+            updateNavForLoggedInUser();
+        } catch (error) {
+            console.error('Error parsing saved user:', error);
+            localStorage.removeItem('currentUser');
+        }
+    }
+}
+
+// Check remember me functionality
+function checkRememberMe() {
+    const rememberMe = localStorage.getItem('rememberMe');
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    
+    if (rememberMe === 'true' && rememberedEmail) {
+        // Auto-fill email in login form
+        const loginEmailInput = document.getElementById('loginEmail');
+        if (loginEmailInput) {
+            loginEmailInput.value = rememberedEmail;
+        }
+        
+        // Check if user is already logged in
+        if (currentUser) {
+            updateNavForLoggedInUser();
+        }
     }
 }
 
 function loadFromLocalStorage() {
+    // Load from localStorage as fallback, but prefer Firebase data
     appointments = JSON.parse(localStorage.getItem('appointments')) || [];
-    users = JSON.parse(localStorage.getItem('users')) || [adminUser];
+    users = JSON.parse(localStorage.getItem('users')) || [];
     currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
     customers = JSON.parse(localStorage.getItem('customers')) || [];
     services = JSON.parse(localStorage.getItem('services')) || [];
-    staff = JSON.parse(localStorage.getItem('staff')) || defaultStaff;
+    staff = JSON.parse(localStorage.getItem('staff')) || [];
     staffSalaries = JSON.parse(localStorage.getItem('staffSalaries')) || [];
     staffAccounts = JSON.parse(localStorage.getItem('staffAccounts')) || [];
     staffAvailability = JSON.parse(localStorage.getItem('staffAvailability')) || [];
@@ -368,37 +608,43 @@ function loadFromLocalStorage() {
 // Save data to Firebase
 async function saveToFirebase(dataType, data) {
     try {
-        if (database) {
+        if (database && set && ref) {
             const basePath = 'AbeautySaloon';
             await set(ref(database, `${basePath}/${dataType}`), data);
             console.log(`${dataType} saved to Firebase under AbeautySaloon`);
+        } else {
+            console.warn('Firebase database functions not available, saving to localStorage only');
         }
     } catch (error) {
         console.error(`Error saving ${dataType} to Firebase:`, error);
-        // Fallback to localStorage
-        localStorage.setItem(dataType, JSON.stringify(data));
     }
+    
+    // Always save to localStorage as backup
+    localStorage.setItem(dataType, JSON.stringify(data));
 }
 
 // Firebase Service Categories Management
 async function saveServiceCategoriesToFirebase() {
     try {
-        if (database) {
+        if (database && set && ref) {
             const basePath = 'AbeautySaloon/serviceCategories';
             await set(ref(database, basePath), serviceCategories);
             console.log('Service categories saved to Firebase');
         } else {
-            throw new Error('Firebase database not available');
+            console.warn('Firebase database functions not available, saving to localStorage only');
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         }
     } catch (error) {
         console.error('Error saving service categories to Firebase:', error);
+        // Fallback to localStorage
+        localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         throw error;
     }
 }
 
 async function loadServiceCategoriesFromFirebase() {
     try {
-        if (database) {
+        if (database && get && ref) {
             const basePath = 'AbeautySaloon/serviceCategories';
             const snapshot = await get(ref(database, basePath));
             if (snapshot.exists()) {
@@ -417,6 +663,9 @@ async function loadServiceCategoriesFromFirebase() {
             } else {
                 console.log('No service categories found in Firebase, using default data');
             }
+        } else {
+            console.warn('Firebase database functions not available, loading from localStorage');
+            loadServiceCategoriesFromLocalStorage();
         }
     } catch (error) {
         console.error('Error loading service categories from Firebase:', error);
@@ -451,71 +700,96 @@ function loadServiceCategoriesFromLocalStorage() {
 
 async function updateServiceCategoryInFirebase(categoryKey, categoryData) {
     try {
-        if (database) {
+        if (database && set && ref) {
             const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
             await set(ref(database, basePath), categoryData);
             console.log(`Service category ${categoryKey} updated in Firebase`);
+        } else {
+            console.warn('Firebase database functions not available, saving to localStorage only');
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         }
     } catch (error) {
         console.error('Error updating service category in Firebase:', error);
+        // Fallback to localStorage
+        localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         throw error;
     }
 }
 
 async function deleteServiceCategoryFromFirebase(categoryKey) {
     try {
-        if (database) {
+        if (database && remove && ref) {
             const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
             await remove(ref(database, basePath));
             console.log(`Service category ${categoryKey} deleted from Firebase`);
+        } else {
+            console.warn('Firebase database functions not available, saving to localStorage only');
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         }
     } catch (error) {
         console.error('Error deleting service category from Firebase:', error);
+        // Fallback to localStorage
+        localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         throw error;
     }
 }
 
 async function addSubcategoryToFirebase(categoryKey, subcategoryData) {
     try {
-        if (database) {
+        if (database && set && ref) {
             // Instead of using push, update the entire category with the new subcategories array
             const categoryData = serviceCategories[categoryKey];
             const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
             await set(ref(database, basePath), categoryData);
             console.log(`Subcategory added to Firebase for category ${categoryKey}`);
+        } else {
+            console.warn('Firebase database functions not available, saving to localStorage only');
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         }
     } catch (error) {
         console.error('Error adding subcategory to Firebase:', error);
+        // Fallback to localStorage
+        localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         throw error;
     }
 }
 
 async function updateSubcategoryInFirebase(categoryKey, subcategoryIndex, subcategoryData) {
     try {
-        if (database) {
+        if (database && set && ref) {
             // Update the entire category with the updated subcategories array
             const categoryData = serviceCategories[categoryKey];
             const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
             await set(ref(database, basePath), categoryData);
             console.log(`Subcategory ${subcategoryIndex} updated in Firebase for category ${categoryKey}`);
+        } else {
+            console.warn('Firebase database functions not available, saving to localStorage only');
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         }
     } catch (error) {
         console.error('Error updating subcategory in Firebase:', error);
+        // Fallback to localStorage
+        localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         throw error;
     }
 }
 
 async function deleteSubcategoryFromFirebase(categoryKey, subcategoryIndex) {
     try {
-        if (database) {
+        if (database && set && ref) {
             // Update the entire category with the updated subcategories array
             const categoryData = serviceCategories[categoryKey];
             const basePath = `AbeautySaloon/serviceCategories/${categoryKey}`;
             await set(ref(database, basePath), categoryData);
             console.log(`Subcategory ${subcategoryIndex} deleted from Firebase for category ${categoryKey}`);
+        } else {
+            console.warn('Firebase database functions not available, saving to localStorage only');
+            localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         }
     } catch (error) {
         console.error('Error deleting subcategory from Firebase:', error);
+        // Fallback to localStorage
+        localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
         throw error;
     }
 }
@@ -633,11 +907,29 @@ function setupEventListeners() {
     
     // Animation on scroll
     window.addEventListener('scroll', handleScrollAnimation);
+    
+    // Close profile dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const profileDropdown = document.getElementById('profile-dropdown');
+        const profileToggle = document.querySelector('.profile-toggle');
+        
+        if (profileDropdown && profileToggle && !profileDropdown.contains(e.target) && !profileToggle.contains(e.target)) {
+            closeProfileDropdown();
+        }
+    });
 }
 
 // Handle appointment form submission
 async function handleAppointmentSubmit(e) {
     e.preventDefault();
+    
+    // Check if user is logged in
+    if (!currentUser) {
+        showErrorMessage('Randevu oluşturmak için giriş yapmanız gerekiyor.');
+        // Show login modal
+        showLoginModal();
+        return;
+    }
     
     const formData = new FormData(e.target);
     const serviceCategory = formData.get('service-category');
@@ -645,11 +937,34 @@ async function handleAppointmentSubmit(e) {
     const selectedStaff = formData.get('staff');
     const autoConfirm = true; // Always auto-confirm appointments
     
-    // Get service details
+    // Get service details from hidden inputs first, then fallback to serviceCategories
+    const serviceName = formData.get('service-name') || '';
+    const servicePrice = parseFloat(formData.get('service-price')) || 0;
+    const serviceDuration = parseInt(formData.get('service-duration')) || 30;
+    
+    // Fallback: try to get from serviceCategories
     const serviceDetails = serviceCategories[serviceCategory]?.subcategories.find(sub => sub.value === serviceSubcategory);
     
     console.log('Creating appointment with staff ID:', selectedStaff, 'type:', typeof selectedStaff);
     console.log('Available staff at creation time:', staff);
+    console.log('Service Category:', serviceCategory);
+    console.log('Service Subcategory:', serviceSubcategory);
+    console.log('Service Name from form:', serviceName);
+    console.log('Service Price from form:', servicePrice);
+    console.log('Service Duration from form:', serviceDuration);
+    console.log('Service Categories:', serviceCategories);
+    console.log('Service Details:', serviceDetails);
+    
+    // Final service details to be saved
+    const finalServiceName = serviceName || serviceDetails?.name || serviceSubcategory || 'Hizmet';
+    const finalServicePrice = servicePrice || serviceDetails?.price || 0;
+    const finalServiceDuration = serviceDuration || serviceDetails?.duration || 30;
+    
+    console.log('Final service details:', {
+        name: finalServiceName,
+        price: finalServicePrice,
+        duration: finalServiceDuration
+    });
     
     const appointment = {
         id: Date.now(),
@@ -659,9 +974,9 @@ async function handleAppointmentSubmit(e) {
         phone: processPhoneNumber(formData.get('phone')),
         serviceCategory: serviceCategory,
         serviceSubcategory: serviceSubcategory,
-        serviceName: serviceDetails?.name || '',
-        servicePrice: serviceDetails?.price || 0,
-        serviceDuration: serviceDetails?.duration || 30,
+        serviceName: finalServiceName,
+        servicePrice: finalServicePrice,
+        serviceDuration: finalServiceDuration,
         staff: selectedStaff,
         date: formData.get('date'),
         time: formData.get('time'),
@@ -698,6 +1013,16 @@ async function handleAppointmentSubmit(e) {
         resetAppointmentForm();
         currentStep = 1;
         document.querySelectorAll('.wizard-step').forEach(step => step.classList.remove('active'));
+        
+        // Show my appointments modal after a short delay
+        setTimeout(() => {
+            showMyAppointments();
+        }, 2000);
+        
+        // Refresh the page after showing appointments
+        setTimeout(() => {
+            window.location.reload();
+        }, 5000);
         document.querySelectorAll('.progress-step').forEach(step => {
             step.classList.remove('active', 'completed');
         });
@@ -734,8 +1059,9 @@ async function handleLogin(e) {
     const formData = new FormData(e.target);
     const email = formData.get('email');
     const password = formData.get('password');
+    const rememberMe = formData.get('rememberMe') === 'on';
     
-    console.log('Giriş denemesi:', { email, password });
+    console.log('Giriş denemesi:', { email, password, rememberMe });
     
     // Validate email format (allowing Turkish characters)
     if (!isValidEmail(email)) {
@@ -755,6 +1081,16 @@ async function handleLogin(e) {
         };
         
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Set remember me
+        if (rememberMe) {
+            localStorage.setItem('rememberMe', 'true');
+            localStorage.setItem('rememberedEmail', email);
+        } else {
+            localStorage.removeItem('rememberMe');
+            localStorage.removeItem('rememberedEmail');
+        }
+        
         closeModal('loginModal');
         updateNavForLoggedInUser();
         showSuccessMessage('Başarıyla giriş yaptınız!');
@@ -770,6 +1106,16 @@ async function handleLogin(e) {
     if (user) {
         currentUser = user;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Set remember me
+        if (rememberMe) {
+            localStorage.setItem('rememberMe', 'true');
+            localStorage.setItem('rememberedEmail', email);
+        } else {
+            localStorage.removeItem('rememberMe');
+            localStorage.removeItem('rememberedEmail');
+        }
+        
         closeModal('loginModal');
         updateNavForLoggedInUser();
         showSuccessMessage('Başarıyla giriş yaptınız!');
@@ -931,7 +1277,15 @@ function processPhoneNumber(phone) {
 function updateNavForLoggedInUser() {
     console.log('updateNavForLoggedInUser called, currentUser:', currentUser);
     
+    if (!currentUser) {
+        console.log('No current user, showing regular nav');
+        showRegularView();
+        return;
+    }
+    
     const navActions = document.querySelector('.nav-actions');
+    const authButtons = document.getElementById('auth-buttons');
+    const profileDropdown = document.getElementById('profile-dropdown');
     
     // Check if user is the specific admin
     const isAdmin = currentUser && currentUser.email === 'admingülcemal@gmail.com';
@@ -939,19 +1293,53 @@ function updateNavForLoggedInUser() {
     
     // Hide nav actions for admin
     if (isAdmin) {
-        navActions.style.display = 'none';
+        if (navActions) {
+            navActions.style.display = 'none';
+        }
         console.log('Calling showAdminView for admin user');
         showAdminView();
     } else {
-        navActions.style.display = 'flex';
-        navActions.innerHTML = `
-            <span class="user-info">Hoş geldin, ${currentUser.name}!</span>
-            <button class="btn-login" onclick="showMyAppointments()">Randevularım</button>
-            <button class="btn-register" onclick="logout()">Çıkış</button>
-        `;
+        if (navActions) {
+            navActions.style.display = 'flex';
+        }
+        
+        // Hide auth buttons and show profile dropdown
+        if (authButtons) {
+            authButtons.style.display = 'none';
+        }
+        if (profileDropdown) {
+            profileDropdown.style.display = 'block';
+            updateProfileInfo();
+        }
+        
         console.log('Calling showRegularView for regular user');
         showRegularView();
     }
+}
+
+// Show regular view (hide admin panel, show regular sections)
+function showRegularView() {
+    console.log('showRegularView called');
+    
+    // Hide admin panel
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) {
+        adminPanel.style.display = 'none';
+        adminPanel.style.visibility = 'hidden';
+    }
+    
+    // Show regular sections
+    const sections = ['home', 'services', 'appointment', 'contact', 'footer'];
+    sections.forEach(sectionId => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+            section.style.display = 'block';
+            section.style.visibility = 'visible';
+        }
+    });
+    
+    // Remove admin-mode class from body
+    document.body.classList.remove('admin-mode');
 }
 
 // Show admin view (hide regular sections, show admin panel)
@@ -1110,35 +1498,76 @@ function loadAppointmentsContent() {
             
             <div class="appointments-list">
                 <h3>Randevu Listesi</h3>
-                <div class="appointments-grid">
-                    ${appointments.map(appointment => `
-                        <div class="appointment-card">
-                            <div class="appointment-header">
-                                <h4>${appointment.name}</h4>
-                                <span class="status-badge ${appointment.status}">${getStatusText(appointment.status)}</span>
-                            </div>
-                            <div class="appointment-details">
-                                <p><i class="fas fa-calendar"></i> ${formatDate(appointment.date)}</p>
-                                <p><i class="fas fa-clock"></i> ${appointment.time}</p>
-                                <p><i class="fas fa-spa"></i> ${appointment.serviceName}</p>
-                                <p><i class="fas fa-phone"></i> ${appointment.phone}</p>
-                            </div>
-                            <div class="appointment-actions">
-                                <select onchange="updateAppointmentStatus(${appointment.id}, this.value)">
-                                    <option value="pending" ${appointment.status === 'pending' ? 'selected' : ''}>Beklemede</option>
-                                    <option value="confirmed" ${appointment.status === 'confirmed' ? 'selected' : ''}>Onaylandı</option>
-                                    <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Tamamlandı</option>
-                                    <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>İptal</option>
-                                </select>
-                                <button class="btn-whatsapp" onclick="sendWhatsAppMessage('${appointment.phone}')">
-                                    <i class="fab fa-whatsapp"></i>
-                                </button>
-                                <button class="btn-delete" onclick="deleteAppointment(${appointment.id})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `).join('')}
+                <div class="appointments-table-container">
+                    <table class="appointments-table">
+                        <thead>
+                            <tr>
+                                <th>Müşteri</th>
+                                <th>Tarih</th>
+                                <th>Saat</th>
+                                <th>Hizmet</th>
+                                <th>Personel</th>
+                                <th>Telefon</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${appointments.map(appointment => `
+                                <tr class="appointment-row ${appointment.status}">
+                                    <td class="customer-cell">
+                                        <div class="customer-info">
+                                            <strong>${appointment.name}</strong>
+                                            ${appointment.notes ? `<small class="notes">${appointment.notes}</small>` : ''}
+                                        </div>
+                                    </td>
+                                    <td class="date-cell">
+                                        <i class="fas fa-calendar"></i>
+                                        ${formatDate(appointment.date)}
+                                    </td>
+                                    <td class="time-cell">
+                                        <i class="fas fa-clock"></i>
+                                        ${appointment.time}
+                                    </td>
+                                    <td class="service-cell">
+                                        <div class="service-info">
+                                            <strong>${appointment.serviceName}</strong>
+                                            <small>${appointment.servicePrice}₺ - ${appointment.serviceDuration}dk</small>
+                                        </div>
+                                    </td>
+                                    <td class="staff-cell">
+                                        <i class="fas fa-user-md"></i>
+                                        ${getStaffName(appointment.staff)}
+                                    </td>
+                                    <td class="phone-cell">
+                                        <i class="fas fa-phone"></i>
+                                        ${appointment.phone}
+                                    </td>
+                                    <td class="status-cell">
+                                        <span class="status-badge ${appointment.status}">
+                                            ${getStatusText(appointment.status)}
+                                        </span>
+                                    </td>
+                                    <td class="actions-cell">
+                                        <div class="table-actions">
+                                            <select onchange="updateAppointmentStatus(${appointment.id}, this.value)" class="status-select">
+                                                <option value="pending" ${appointment.status === 'pending' ? 'selected' : ''}>Beklemede</option>
+                                                <option value="confirmed" ${appointment.status === 'confirmed' ? 'selected' : ''}>Onaylandı</option>
+                                                <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Tamamlandı</option>
+                                                <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>İptal</option>
+                                            </select>
+                                            <button class="btn-whatsapp" onclick="sendWhatsAppMessage('${appointment.phone}')" title="WhatsApp">
+                                                <i class="fab fa-whatsapp"></i>
+                                            </button>
+                                            <button class="btn-delete" onclick="deleteAppointment(${appointment.id})" title="Sil">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1437,7 +1866,9 @@ function showStaffAppointmentsModal() {
             </div>
             <div class="staff-appointments-list">
                 ${staff.map(member => {
-                    const memberAppointments = appointments.filter(apt => apt.staffId === member.id);
+                    const memberAppointments = appointments.filter(apt => 
+                        apt.staffId === member.id && apt.status !== 'cancelled'
+                    );
                     return `
                         <div class="staff-appointment-group">
                             <h4>${member.name} - ${memberAppointments.length} Randevu</h4>
@@ -1744,19 +2175,60 @@ function logout() {
     // Show regular view
     showRegularView();
     
-    // Reset navigation
+    // Reset navigation to show auth buttons
     const navActions = document.querySelector('.nav-actions');
+    const authButtons = document.getElementById('auth-buttons');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    
     if (navActions) {
-        navActions.innerHTML = `
-            <button class="btn-login" onclick="showLoginModal()">
-                <i class="fas fa-sign-in-alt"></i>
-                <span>Giriş Yap</span>
-            </button>
-            <button class="btn-register" onclick="showRegisterModal()">
-                <i class="fas fa-user-plus"></i>
-                <span>Kayıt Ol</span>
-            </button>
-        `;
+        navActions.style.display = 'flex';
+    }
+    
+    if (authButtons) {
+        authButtons.style.display = 'flex';
+    }
+    
+    if (profileDropdown) {
+        profileDropdown.style.display = 'none';
+    }
+}
+
+// Update profile information in dropdown
+function updateProfileInfo() {
+    if (!currentUser) return;
+    
+    const profileName = document.getElementById('profile-name');
+    const profileEmail = document.getElementById('profile-email');
+    const profileMenuName = document.getElementById('profile-menu-name');
+    const profileMenuEmail = document.getElementById('profile-menu-email');
+    
+    if (profileName) {
+        profileName.textContent = currentUser.name || 'Kullanıcı';
+    }
+    if (profileEmail) {
+        profileEmail.textContent = currentUser.email || 'email@example.com';
+    }
+    if (profileMenuName) {
+        profileMenuName.textContent = currentUser.name || 'Kullanıcı Adı';
+    }
+    if (profileMenuEmail) {
+        profileMenuEmail.textContent = currentUser.email || 'email@example.com';
+    }
+}
+
+// Toggle profile dropdown
+function toggleProfileDropdown() {
+    const profileDropdown = document.getElementById('profile-dropdown');
+    if (profileDropdown) {
+        profileDropdown.classList.toggle('active');
+    }
+}
+
+// Close profile dropdown when clicking outside
+function closeProfileDropdown() {
+    const profileDropdown = document.getElementById('profile-dropdown');
+    if (profileDropdown) {
+        profileDropdown.classList.remove('active');
     }
 }
 
@@ -1772,10 +2244,11 @@ function showMyAppointments() {
 function loadMyAppointments() {
     const content = document.getElementById('my-appointments-content');
     
-    // Filter appointments for current user
+    // Filter appointments for current user (exclude cancelled appointments)
     const userAppointments = appointments.filter(apt => 
-        apt.phone === currentUser.phone || 
-        (apt.name && apt.name.toLowerCase().includes(currentUser.name.toLowerCase()))
+        (apt.phone === currentUser.phone || 
+        (apt.name && apt.name.toLowerCase().includes(currentUser.name.toLowerCase()))) &&
+        apt.status !== 'cancelled'
     );
     
     if (userAppointments.length === 0) {
@@ -1792,25 +2265,39 @@ function loadMyAppointments() {
     // Sort appointments by date (newest first)
     userAppointments.sort((a, b) => new Date(b.date) - new Date(a.date));
     
+    // Debug: Log appointment details
+    console.log('User appointments:', userAppointments);
+    userAppointments.forEach(apt => {
+        console.log('Appointment details:', {
+            id: apt.id,
+            serviceName: apt.serviceName,
+            servicePrice: apt.servicePrice,
+            serviceDuration: apt.serviceDuration,
+            status: apt.status
+        });
+    });
+    
     content.innerHTML = `
+        <div class="my-appointments-header">
+            <h3><i class="fas fa-calendar-check"></i> Randevularım</h3>
+            <p>Toplam ${userAppointments.length} randevunuz bulunuyor</p>
+        </div>
         <div class="my-appointments-list">
             ${userAppointments.map(appointment => `
-                <div class="appointment-card ${appointment.status}">
-                    <div class="appointment-header">
-                        <div class="appointment-info">
-                            <h4>${appointment.serviceName}</h4>
-                            <p class="appointment-date">
-                                <i class="fas fa-calendar"></i>
-                                ${formatDate(appointment.date)} - ${appointment.time}
-                            </p>
-                            <p class="appointment-staff">
-                                <i class="fas fa-user"></i>
-                                ${getStaffName(appointment.staff)}
-                            </p>
-                            <p class="appointment-price">
-                                <i class="fas fa-lira-sign"></i>
-                                ${appointment.servicePrice}₺
-                            </p>
+                <div class="my-appointment-card ${appointment.status}">
+                    <div class="appointment-card-header">
+                        <div class="service-info">
+                            <div class="service-icon">
+                                <i class="fas fa-spa"></i>
+                            </div>
+                            <div class="service-details">
+                                <h4>${appointment.serviceName || appointment.serviceSubcategory || 'Hizmet'}</h4>
+                                <p class="service-category">${appointment.serviceCategory || 'Kategori'}</p>
+                                <div class="service-meta">
+                                    <span class="service-price">${appointment.servicePrice || 0}₺</span>
+                                    <span class="service-duration">${appointment.serviceDuration || 30} dk</span>
+                                </div>
+                            </div>
                         </div>
                         <div class="appointment-status">
                             <span class="status-badge ${appointment.status}">
@@ -1819,9 +2306,65 @@ function loadMyAppointments() {
                         </div>
                     </div>
                     
+                    <div class="appointment-details-grid">
+                        <div class="detail-item">
+                            <div class="detail-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="detail-content">
+                                <span class="detail-label">Tarih</span>
+                                <span class="detail-value">${formatDate(appointment.date)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="detail-content">
+                                <span class="detail-label">Saat</span>
+                                <span class="detail-value">${appointment.time}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-icon">
+                                <i class="fas fa-user-md"></i>
+                            </div>
+                            <div class="detail-content">
+                                <span class="detail-label">Personel</span>
+                                <span class="detail-value">${getStaffName(appointment.staff)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-icon">
+                                <i class="fas fa-lira-sign"></i>
+                            </div>
+                            <div class="detail-content">
+                                <span class="detail-label">Fiyat</span>
+                                <span class="detail-value">${appointment.servicePrice}₺</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-icon">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div class="detail-content">
+                                <span class="detail-label">Süre</span>
+                                <span class="detail-value">${appointment.serviceDuration} dk</span>
+                            </div>
+                        </div>
+                    </div>
+                    
                     ${appointment.notes ? `
                         <div class="appointment-notes">
-                            <strong>Notlar:</strong> ${appointment.notes}
+                            <div class="notes-header">
+                                <i class="fas fa-sticky-note"></i>
+                                <span>Notlar</span>
+                            </div>
+                            <p>${appointment.notes}</p>
                         </div>
                     ` : ''}
                     
@@ -1829,6 +2372,16 @@ function loadMyAppointments() {
                         ${appointment.status === 'confirmed' || appointment.status === 'pending' ? `
                             <button class="btn-cancel" onclick="cancelAppointment(${appointment.id})">
                                 <i class="fas fa-times"></i> İptal Et
+                            </button>
+                        ` : ''}
+                        ${appointment.status === 'completed' ? `
+                            <button class="btn-completed" disabled>
+                                <i class="fas fa-check-circle"></i> Tamamlandı
+                            </button>
+                        ` : ''}
+                        ${appointment.status === 'cancelled' ? `
+                            <button class="btn-cancelled" disabled>
+                                <i class="fas fa-times-circle"></i> İptal Edildi
                             </button>
                         ` : ''}
                     </div>
@@ -1843,13 +2396,7 @@ function getStaffName(staffId) {
     console.log('getStaffName called with staffId:', staffId, 'type:', typeof staffId);
     console.log('Available staff:', staff);
     
-    // Ensure staff data is loaded
-    if (staff.length === 0) {
-        console.log('Staff array is empty, loading from localStorage');
-        const storedStaff = JSON.parse(localStorage.getItem('staff')) || defaultStaff;
-        staff = storedStaff;
-        console.log('Loaded staff from storage:', staff);
-    }
+    // Staff data will be loaded from Firebase
     
     if (!staffId) {
         console.log('No staffId provided');
@@ -2013,8 +2560,18 @@ function updateAppointmentStatus(id, status) {
 function deleteAppointment(id) {
     if (confirm('Bu randevuyu silmek istediğinizden emin misiniz?')) {
         appointments = appointments.filter(apt => apt.id !== id);
+        
+        // Save to Firebase and localStorage
+        saveToFirebase('appointments', appointments);
         localStorage.setItem('appointments', JSON.stringify(appointments));
+        
+        // Refresh lists
         loadAppointmentsList();
+        if (typeof loadAppointmentsContent === 'function') {
+            loadAppointmentsContent();
+        }
+        
+        console.log('Appointment deleted:', id);
     }
 }
 
@@ -3050,17 +3607,64 @@ function handleScrollAnimation() {
     });
 }
 
+// Show error message
+function showErrorMessage(message) {
+    // Remove existing error messages
+    const existingError = document.querySelector('.error-message');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Create error message element
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'error-message';
+    errorMessage.innerHTML = `
+        <div class="error-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="error-text">
+                <h4>Hata!</h4>
+                <p>${message}</p>
+            </div>
+        </div>
+    `;
+    
+    // Add to body
+    document.body.appendChild(errorMessage);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (errorMessage.parentNode) {
+            errorMessage.remove();
+        }
+    }, 5000);
+}
+
 // Show success message
 function showSuccessMessage(message) {
     const successDiv = document.createElement('div');
     successDiv.className = 'success-message';
-    successDiv.textContent = message;
+    successDiv.innerHTML = `
+        <div class="success-content">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="success-text">
+                <h4>Başarılı!</h4>
+                <p>${message}</p>
+            </div>
+        </div>
+    `;
     successDiv.style.display = 'block';
     
     document.body.appendChild(successDiv);
     
+    // Auto remove after 5 seconds
     setTimeout(() => {
-        successDiv.remove();
+        successDiv.style.opacity = '0';
+        successDiv.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+            successDiv.remove();
+        }, 300);
     }, 5000);
 }
 
@@ -3449,6 +4053,28 @@ function resetAppointmentForm() {
     document.getElementById('subcategory-group').style.display = 'none';
     document.getElementById('staff-group').style.display = 'none';
     document.getElementById('customer-suggestions').style.display = 'none';
+    
+    // Reset hidden inputs
+    document.getElementById('service-category').value = '';
+    document.getElementById('service-subcategory').value = '';
+    document.getElementById('service-name').value = '';
+    document.getElementById('service-price').value = '';
+    document.getElementById('service-duration').value = '';
+    
+    // Reset service category cards selection
+    document.querySelectorAll('.service-category-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Reset subcategory cards selection
+    document.querySelectorAll('.subcategory-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Reset staff cards selection
+    document.querySelectorAll('.staff-card').forEach(card => {
+        card.classList.remove('selected');
+    });
 }
 
 
@@ -4709,6 +5335,9 @@ window.showAdminPanel = showAdminPanel;
 window.showMyAppointments = showMyAppointments;
 window.cancelAppointment = cancelAppointment;
 window.logout = logout;
+window.toggleProfileDropdown = toggleProfileDropdown;
+window.closeProfileDropdown = closeProfileDropdown;
+window.updateProfileInfo = updateProfileInfo;
 window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
 window.selectCustomer = selectCustomer;
@@ -4749,3 +5378,187 @@ window.exportServices = exportServices;
 window.importServices = importServices;
 window.showIconPicker = showIconPicker;
 window.setupIconPickerEvents = setupIconPickerEvents;
+
+// Staff Management Functions
+function showAddStaffModal() {
+    const modalHTML = `
+        <div class="modal" id="addStaffModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Yeni Personel Ekle</h3>
+                    <button class="close" onclick="closeModal('addStaffModal')">&times;</button>
+                </div>
+                <form id="addStaffForm" onsubmit="handleAddStaffSubmit(event)">
+                    <div class="form-group">
+                        <label for="staffName">Ad Soyad:</label>
+                        <input type="text" id="staffName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffSpecialty">Uzmanlık:</label>
+                        <input type="text" id="staffSpecialty" name="specialty" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffPhone">Telefon:</label>
+                        <input type="tel" id="staffPhone" name="phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffEmail">E-posta:</label>
+                        <input type="email" id="staffEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffAvatar">Avatar:</label>
+                        <select id="staffAvatar" name="avatar" required>
+                            <option value="👩‍⚕️">👩‍⚕️ Hemşire</option>
+                            <option value="👨‍⚕️">👨‍⚕️ Doktor</option>
+                            <option value="👩‍💼">👩‍💼 Uzman</option>
+                            <option value="👨‍💼">👨‍💼 Uzman</option>
+                            <option value="👩‍🎨">👩‍🎨 Sanatçı</option>
+                            <option value="👨‍🎨">👨‍🎨 Sanatçı</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" onclick="closeModal('addStaffModal')" class="btn-secondary">İptal</button>
+                        <button type="submit" class="btn-primary">Personel Ekle</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    document.getElementById('addStaffModal').style.display = 'flex';
+}
+
+function handleAddStaffSubmit(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const newStaff = {
+        id: Date.now(),
+        name: formData.get('name'),
+        specialty: formData.get('specialty'),
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        avatar: formData.get('avatar'),
+        createdAt: new Date().toISOString()
+    };
+    
+    // Add to staff array
+    staff.push(newStaff);
+    
+    // Save to Firebase and localStorage
+    saveToFirebase('staff', staff);
+    localStorage.setItem('staff', JSON.stringify(staff));
+    
+    // Close modal and refresh list
+    closeModal('addStaffModal');
+    loadStaffList();
+    
+    console.log('New staff added:', newStaff);
+}
+
+function editStaff(staffId) {
+    const member = staff.find(s => s.id === staffId);
+    if (!member) return;
+    
+    const modalHTML = `
+        <div class="modal" id="editStaffModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Personel Düzenle</h3>
+                    <button class="close" onclick="closeModal('editStaffModal')">&times;</button>
+                </div>
+                <form id="editStaffForm" onsubmit="handleEditStaffSubmit(event, ${staffId})">
+                    <div class="form-group">
+                        <label for="editStaffName">Ad Soyad:</label>
+                        <input type="text" id="editStaffName" name="name" value="${member.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editStaffSpecialty">Uzmanlık:</label>
+                        <input type="text" id="editStaffSpecialty" name="specialty" value="${member.specialty}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editStaffPhone">Telefon:</label>
+                        <input type="tel" id="editStaffPhone" name="phone" value="${member.phone || ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editStaffEmail">E-posta:</label>
+                        <input type="email" id="editStaffEmail" name="email" value="${member.email || ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editStaffAvatar">Avatar:</label>
+                        <select id="editStaffAvatar" name="avatar" required>
+                            <option value="👩‍⚕️" ${member.avatar === '👩‍⚕️' ? 'selected' : ''}>👩‍⚕️ Hemşire</option>
+                            <option value="👨‍⚕️" ${member.avatar === '👨‍⚕️' ? 'selected' : ''}>👨‍⚕️ Doktor</option>
+                            <option value="👩‍💼" ${member.avatar === '👩‍💼' ? 'selected' : ''}>👩‍💼 Uzman</option>
+                            <option value="👨‍💼" ${member.avatar === '👨‍💼' ? 'selected' : ''}>👨‍💼 Uzman</option>
+                            <option value="👩‍🎨" ${member.avatar === '👩‍🎨' ? 'selected' : ''}>👩‍🎨 Sanatçı</option>
+                            <option value="👨‍🎨" ${member.avatar === '👨‍🎨' ? 'selected' : ''}>👨‍🎨 Sanatçı</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" onclick="closeModal('editStaffModal')" class="btn-secondary">İptal</button>
+                        <button type="submit" class="btn-primary">Güncelle</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    document.getElementById('editStaffModal').style.display = 'flex';
+}
+
+function handleEditStaffSubmit(event, staffId) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const memberIndex = staff.findIndex(s => s.id === staffId);
+    
+    if (memberIndex !== -1) {
+        staff[memberIndex] = {
+            ...staff[memberIndex],
+            name: formData.get('name'),
+            specialty: formData.get('specialty'),
+            phone: formData.get('phone'),
+            email: formData.get('email'),
+            avatar: formData.get('avatar'),
+            updatedAt: new Date().toISOString()
+        };
+        
+        // Save to Firebase and localStorage
+        saveToFirebase('staff', staff);
+        localStorage.setItem('staff', JSON.stringify(staff));
+        
+        // Close modal and refresh list
+        closeModal('editStaffModal');
+        loadStaffList();
+        
+        console.log('Staff updated:', staff[memberIndex]);
+    }
+}
+
+function deleteStaff(staffId) {
+    if (confirm('Bu personeli silmek istediğinizden emin misiniz?')) {
+        const memberIndex = staff.findIndex(s => s.id === staffId);
+        if (memberIndex !== -1) {
+            staff.splice(memberIndex, 1);
+            
+            // Save to Firebase and localStorage
+            saveToFirebase('staff', staff);
+            localStorage.setItem('staff', JSON.stringify(staff));
+            
+            // Refresh list
+            loadStaffList();
+            
+            console.log('Staff deleted:', staffId);
+        }
+    }
+}
+
+// Export functions to window
+window.showAddStaffModal = showAddStaffModal;
+window.handleAddStaffSubmit = handleAddStaffSubmit;
+window.editStaff = editStaff;
+window.handleEditStaffSubmit = handleEditStaffSubmit;
+window.deleteStaff = deleteStaff;
