@@ -1654,6 +1654,33 @@ html {
 }
 
 /* Admin Panel Styles */
+.admin-panel-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 6rem 0;
+    min-height: 100vh;
+}
+
+/* Hide regular sections when admin panel is active */
+body.admin-mode #services,
+body.admin-mode #home,
+body.admin-mode #appointment,
+body.admin-mode #contact,
+body.admin-mode #footer {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+.admin-panel-section .admin-panel {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
 .admin-modal {
     max-width: 1200px;
     width: 95%;

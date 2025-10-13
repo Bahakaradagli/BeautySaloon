@@ -106,6 +106,9 @@ const defaultStaff = [
 if (staff.length === 0) {
     staff = defaultStaff;
     localStorage.setItem('staff', JSON.stringify(staff));
+    console.log('Staff initialized with default data:', staff);
+} else {
+    console.log('Staff loaded from storage:', staff);
 }
 
 // Initialize admin user
@@ -174,6 +177,13 @@ async function createFirebaseAdminUser() {
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
+    // Force hide admin panel on page load
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) {
+        adminPanel.style.display = 'none';
+        adminPanel.style.visibility = 'hidden';
+    }
+    
     // Setup event listeners first
     setupEventListeners();
     
@@ -350,11 +360,24 @@ async function saveToFirebase(dataType, data) {
 function initializeApp() {
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('date').setAttribute('min', today);
+    const dateInput = document.getElementById('date');
+    if (dateInput) {
+        dateInput.setAttribute('min', today);
+    }
+    
+    // Ensure admin panel is hidden by default
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) {
+        adminPanel.style.display = 'none';
+        adminPanel.style.visibility = 'hidden';
+    }
     
     // Check if user is logged in
     if (currentUser) {
         updateNavForLoggedInUser();
+    } else {
+        // If no user is logged in, ensure regular view is shown
+        showRegularView();
     }
 }
 
@@ -461,6 +484,9 @@ async function handleAppointmentSubmit(e) {
     // Get service details
     const serviceDetails = serviceCategories[serviceCategory]?.subcategories.find(sub => sub.value === serviceSubcategory);
     
+    console.log('Creating appointment with staff ID:', selectedStaff, 'type:', typeof selectedStaff);
+    console.log('Available staff at creation time:', staff);
+    
     const appointment = {
         id: Date.now(),
         firstName: formData.get('firstName'),
@@ -480,6 +506,8 @@ async function handleAppointmentSubmit(e) {
         createdAt: new Date().toISOString(),
         source: 'online'
     };
+    
+    console.log('Created appointment:', appointment);
     
     // Validate appointment
     if (validateAppointment(appointment)) {
@@ -737,17 +765,146 @@ function processPhoneNumber(phone) {
 
 // Update navigation for logged in user
 function updateNavForLoggedInUser() {
+    console.log('updateNavForLoggedInUser called, currentUser:', currentUser);
+    
     const navActions = document.querySelector('.nav-actions');
     
     // Check if user is the specific admin
-    const isAdmin = currentUser.email === 'admingülcemal@gmail.com';
+    const isAdmin = currentUser && currentUser.email === 'admingülcemal@gmail.com';
+    console.log('Is admin:', isAdmin);
     
     navActions.innerHTML = `
         <span class="user-info">Hoş geldin, ${currentUser.name}!</span>
-        <button class="btn-login" onclick="showMyAppointments()">Randevularım</button>
-        ${isAdmin ? '<button class="btn-login" onclick="showAdminPanel()">Yönetim</button>' : ''}
+        ${!isAdmin ? '<button class="btn-login" onclick="showMyAppointments()">Randevularım</button>' : ''}
         <button class="btn-register" onclick="logout()">Çıkış</button>
     `;
+    
+    // If admin, show admin panel and hide regular sections
+    if (isAdmin) {
+        console.log('Calling showAdminView for admin user');
+        showAdminView();
+    } else {
+        console.log('Calling showRegularView for regular user');
+        showRegularView();
+    }
+}
+
+// Show admin view (hide regular sections, show admin panel)
+function showAdminView() {
+    console.log('showAdminView called');
+    
+    // Add admin-mode class to body for CSS control
+    document.body.classList.add('admin-mode');
+    
+    // Hide regular sections with more aggressive hiding
+    const homeSection = document.getElementById('home');
+    const servicesSection = document.getElementById('services');
+    const appointmentSection = document.getElementById('appointment');
+    const contactSection = document.getElementById('contact');
+    const footerSection = document.getElementById('footer');
+    
+    if (homeSection) {
+        homeSection.style.display = 'none';
+        homeSection.style.visibility = 'hidden';
+        homeSection.style.height = '0';
+        homeSection.style.overflow = 'hidden';
+        console.log('Home section hidden');
+    }
+    if (servicesSection) {
+        servicesSection.style.display = 'none';
+        servicesSection.style.visibility = 'hidden';
+        servicesSection.style.height = '0';
+        servicesSection.style.overflow = 'hidden';
+        console.log('Services section hidden');
+    }
+    if (appointmentSection) {
+        appointmentSection.style.display = 'none';
+        appointmentSection.style.visibility = 'hidden';
+        appointmentSection.style.height = '0';
+        appointmentSection.style.overflow = 'hidden';
+        console.log('Appointment section hidden');
+    }
+    if (contactSection) {
+        contactSection.style.display = 'none';
+        contactSection.style.visibility = 'hidden';
+        contactSection.style.height = '0';
+        contactSection.style.overflow = 'hidden';
+        console.log('Contact section hidden');
+    }
+    if (footerSection) {
+        footerSection.style.display = 'none';
+        footerSection.style.visibility = 'hidden';
+        footerSection.style.height = '0';
+        footerSection.style.overflow = 'hidden';
+        console.log('Footer section hidden');
+    }
+    
+    // Show admin panel
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) {
+        adminPanel.style.display = 'block';
+        adminPanel.style.visibility = 'visible';
+        adminPanel.style.height = 'auto';
+        adminPanel.style.overflow = 'visible';
+        console.log('Admin panel shown');
+        // Load admin data
+        loadAdminData();
+    } else {
+        console.error('Admin panel element not found!');
+    }
+}
+
+// Show regular view (hide admin panel, show regular sections)
+function showRegularView() {
+    // Remove admin-mode class from body
+    document.body.classList.remove('admin-mode');
+    
+    // Force hide admin panel first
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) {
+        adminPanel.style.display = 'none';
+        adminPanel.style.visibility = 'hidden';
+        adminPanel.style.height = '0';
+        adminPanel.style.overflow = 'hidden';
+    }
+    
+    // Show regular sections
+    const homeSection = document.getElementById('home');
+    const servicesSection = document.getElementById('services');
+    const appointmentSection = document.getElementById('appointment');
+    const contactSection = document.getElementById('contact');
+    const footerSection = document.getElementById('footer');
+    
+    if (homeSection) {
+        homeSection.style.display = 'flex';
+        homeSection.style.visibility = 'visible';
+        homeSection.style.height = 'auto';
+        homeSection.style.overflow = 'visible';
+    }
+    if (servicesSection) {
+        servicesSection.style.display = 'block';
+        servicesSection.style.visibility = 'visible';
+        servicesSection.style.height = 'auto';
+        servicesSection.style.overflow = 'visible';
+    }
+    if (appointmentSection) {
+        appointmentSection.style.display = 'block';
+        appointmentSection.style.visibility = 'visible';
+        appointmentSection.style.height = 'auto';
+        appointmentSection.style.overflow = 'visible';
+    }
+    if (contactSection) {
+        contactSection.style.display = 'block';
+        contactSection.style.visibility = 'visible';
+        contactSection.style.height = 'auto';
+        contactSection.style.overflow = 'visible';
+    }
+    if (footerSection) {
+        footerSection.style.display = 'block';
+        footerSection.style.visibility = 'visible';
+        footerSection.style.height = 'auto';
+        footerSection.style.overflow = 'visible';
+    }
 }
 
 // Logout function
@@ -764,7 +921,29 @@ function logout() {
     if (lastNameInput) lastNameInput.value = '';
     if (phoneInput) phoneInput.value = '';
     
-    location.reload();
+    // Force hide admin panel first
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) {
+        adminPanel.style.display = 'none';
+    }
+    
+    // Show regular view
+    showRegularView();
+    
+    // Reset navigation
+    const navActions = document.querySelector('.nav-actions');
+    if (navActions) {
+        navActions.innerHTML = `
+            <button class="btn-login" onclick="showLoginModal()">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Giriş Yap</span>
+            </button>
+            <button class="btn-register" onclick="showRegisterModal()">
+                <i class="fas fa-user-plus"></i>
+                <span>Kayıt Ol</span>
+            </button>
+        `;
+    }
 }
 
 // Show my appointments
@@ -847,8 +1026,37 @@ function loadMyAppointments() {
 
 // Get staff name by ID
 function getStaffName(staffId) {
-    const staffMember = staff.find(s => s.id === staffId);
-    return staffMember ? staffMember.name : 'Belirtilmemiş';
+    console.log('getStaffName called with staffId:', staffId, 'type:', typeof staffId);
+    console.log('Available staff:', staff);
+    
+    // Ensure staff data is loaded
+    if (staff.length === 0) {
+        console.log('Staff array is empty, loading from localStorage');
+        const storedStaff = JSON.parse(localStorage.getItem('staff')) || defaultStaff;
+        staff = storedStaff;
+        console.log('Loaded staff from storage:', staff);
+    }
+    
+    if (!staffId) {
+        console.log('No staffId provided');
+        return 'Belirtilmemiş';
+    }
+    
+    // Try to find staff by ID (convert to number if needed)
+    let staffMember = staff.find(s => s.id == staffId);
+    
+    // If not found by ID, try to find by name
+    if (!staffMember) {
+        staffMember = staff.find(s => s.name === staffId);
+    }
+    
+    if (staffMember) {
+        console.log('Found staff member:', staffMember);
+        return staffMember.name;
+    } else {
+        console.log('Staff member not found for ID:', staffId);
+        return 'Belirtilmemiş';
+    }
 }
 
 // Get status text in Turkish
@@ -898,177 +1106,22 @@ async function cancelAppointment(appointmentId) {
 
 // Show admin panel
 function showAdminPanel() {
-    if (!currentUser) return;
+    console.log('showAdminPanel called');
+    if (!currentUser) {
+        console.log('No current user');
+        return;
+    }
     
     // Only allow specific admin user
     if (currentUser.email !== 'admingülcemal@gmail.com') {
+        console.log('Not admin user:', currentUser.email);
         showErrorMessage('Bu sayfaya erişim yetkiniz yok!');
         return;
     }
     
-    const adminHTML = `
-        <div class="admin-panel">
-            <h2><i class="fas fa-cogs"></i> Yönetim Paneli</h2>
-            <div class="admin-tabs">
-                <button class="tab-btn active" onclick="showTab('appointments')">
-                    <i class="fas fa-calendar-alt"></i> Randevular
-                </button>
-                <button class="tab-btn" onclick="showTab('revenue')">
-                    <i class="fas fa-chart-line"></i> Gelir-Gider
-                </button>
-                <button class="tab-btn" onclick="showTab('customers')">
-                    <i class="fas fa-users"></i> Müşteriler
-                </button>
-                <button class="tab-btn" onclick="showTab('users')">
-                    <i class="fas fa-user-plus"></i> Kayıtlı Kullanıcılar
-                </button>
-                <button class="tab-btn" onclick="showTab('services')">
-                    <i class="fas fa-spa"></i> Hizmetler
-                </button>
-                <button class="tab-btn" onclick="showTab('staff')">
-                    <i class="fas fa-user-tie"></i> Personel
-                </button>
-                <button class="tab-btn" onclick="showTab('settings')">
-                    <i class="fas fa-cog"></i> Ayarlar
-                </button>
-            </div>
-            <div id="appointments-tab" class="tab-content active">
-                <div class="tab-header">
-                    <h3><i class="fas fa-calendar-alt"></i> Randevu Yönetimi</h3>
-                </div>
-                <div class="appointment-filters">
-                    <select id="status-filter" onchange="filterAppointments()">
-                        <option value="">Tüm Durumlar</option>
-                        <option value="pending">Beklemede</option>
-                        <option value="confirmed">Onaylandı</option>
-                        <option value="completed">Tamamlandı</option>
-                        <option value="cancelled">İptal</option>
-                    </select>
-                    <input type="date" id="date-filter" onchange="filterAppointments()">
-                </div>
-                <div id="appointments-list"></div>
-            </div>
-            <div id="revenue-tab" class="tab-content">
-                <h3><i class="fas fa-chart-line"></i> Gelir-Gider Takibi</h3>
-                <div class="revenue-stats">
-                    <div class="stat-card">
-                        <h4>Toplam Gelir</h4>
-                        <span id="total-revenue">0₺</span>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Bu Ay</h4>
-                        <span id="monthly-revenue">0₺</span>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Bugün</h4>
-                        <span id="daily-revenue">0₺</span>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Toplam Randevu</h4>
-                        <span id="total-appointments">0</span>
-                    </div>
-                </div>
-                <div class="revenue-actions">
-                    <button class="btn-primary" onclick="showAddExpenseModal()">
-                        <i class="fas fa-plus"></i> Gider Ekle
-                    </button>
-                    <button class="btn-primary" onclick="showRevenueReport()">
-                        <i class="fas fa-chart-bar"></i> Rapor
-                    </button>
-                </div>
-                <div id="revenue-list"></div>
-            </div>
-            <div id="customers-tab" class="tab-content">
-                <h3><i class="fas fa-users"></i> Müşteri Yönetimi</h3>
-                <div class="customer-actions">
-                    <button class="btn-primary" onclick="sendBulkWhatsAppMessage()">
-                        <i class="fab fa-whatsapp"></i> Toplu Mesaj
-                    </button>
-                </div>
-                <div id="customers-list"></div>
-            </div>
-            <div id="users-tab" class="tab-content">
-                <h3><i class="fas fa-user-plus"></i> Kayıtlı Kullanıcılar</h3>
-                <div class="user-actions">
-                    <button class="btn-primary" onclick="exportUsers()">
-                        <i class="fas fa-download"></i> Kullanıcıları Dışa Aktar
-                    </button>
-                    <button class="btn-secondary" onclick="loadUsers()">
-                        <i class="fas fa-refresh"></i> Yenile
-                    </button>
-                </div>
-                <div class="user-stats">
-                    <div class="stat-card">
-                        <i class="fas fa-users"></i>
-                        <div class="stat-info">
-                            <span class="stat-number" id="total-users">0</span>
-                            <span class="stat-label">Toplam Kullanıcı</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fas fa-user-check"></i>
-                        <div class="stat-info">
-                            <span class="stat-number" id="active-users">0</span>
-                            <span class="stat-label">Aktif Kullanıcı</span>
-                        </div>
-                    </div>
-                </div>
-                <div id="users-list"></div>
-            </div>
-            <div id="services-tab" class="tab-content">
-                <h3><i class="fas fa-spa"></i> Hizmet Yönetimi</h3>
-                <div class="service-actions">
-                    <button class="btn-primary" onclick="showAddServiceModal()">
-                        <i class="fas fa-plus"></i> Hizmet Ekle
-                    </button>
-                </div>
-                <div id="services-list"></div>
-            </div>
-            <div id="staff-tab" class="tab-content">
-                <h3><i class="fas fa-user-tie"></i> Personel Yönetimi</h3>
-                <div class="staff-actions">
-                    <button class="btn-primary" onclick="showAddStaffModal()">
-                        <i class="fas fa-plus"></i> Personel Ekle
-                    </button>
-                </div>
-                <div id="staff-list"></div>
-            </div>
-            <div id="settings-tab" class="tab-content">
-                <h3><i class="fas fa-cog"></i> Sistem Ayarları</h3>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label>Otomatik Onay</label>
-                        <input type="checkbox" id="auto-confirm-setting" onchange="updateSetting('autoConfirm', this.checked)">
-                    </div>
-                    <div class="setting-item">
-                        <label>WhatsApp Hatırlatma</label>
-                        <input type="checkbox" id="whatsapp-reminder-setting" onchange="updateSetting('whatsappReminder', this.checked)">
-                    </div>
-                    <div class="setting-item">
-                        <label>Hatırlatma Saati (saat öncesi)</label>
-                        <input type="number" id="reminder-hours-setting" onchange="updateSetting('reminderHours', this.value)" min="1" max="24">
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Create modal for admin panel
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.id = 'adminModal';
-    modal.innerHTML = `
-        <div class="modal-content admin-modal">
-            <span class="close" onclick="closeModal('adminModal')">&times;</span>
-            ${adminHTML}
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    modal.style.display = 'block';
-    
-    // Load admin data
-    loadAdminData();
+    console.log('Switching to admin view');
+    // Switch to admin view
+    showAdminView();
 }
 
 // Show tab content
@@ -1088,9 +1141,7 @@ function showTab(tabName) {
     event.target.classList.add('active');
     
     // Load data for the tab
-    if (tabName === 'appointments') {
-        loadAppointmentsList();
-    } else if (tabName === 'revenue') {
+    if (tabName === 'revenue') {
         loadRevenueData();
     } else if (tabName === 'customers') {
         loadCustomersList();
@@ -1099,10 +1150,8 @@ function showTab(tabName) {
 
 // Load admin data
 function loadAdminData() {
-    loadAppointmentsList();
     loadRevenueData();
     loadCustomersList();
-    loadUsers();
     loadServicesList();
     loadStaffList();
     loadSettings();
