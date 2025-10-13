@@ -257,7 +257,7 @@
                         </div>
                         <div class="form-group">
                             <label for="phone">Telefon Numarası</label>
-                            <input type="tel" id="phone" name="phone" required placeholder="05XX XXX XX XX">
+                            <input type="tel" id="phone" name="phone" required placeholder="XXX XXX XX XX">
                         </div>
                         
                         <div class="form-group">
@@ -363,13 +363,6 @@
                             <textarea id="notes" name="notes" rows="3" placeholder="Özel isteklerinizi, alerjilerinizi veya notlarınızı yazabilirsiniz..."></textarea>
                         </div>
                         
-                        <div class="form-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="auto-confirm" name="auto-confirm">
-                                <span class="checkmark"></span>
-                                Randevumu otomatik onayla
-                            </label>
-                        </div>
                         
                         <div class="step-actions">
                             <button type="button" class="btn-prev" onclick="prevStep(3)">
@@ -494,7 +487,7 @@
                 </div>
                 <div class="form-group">
                     <label for="regPhone">Telefon Numarası</label>
-                    <input type="tel" id="regPhone" name="phone" required placeholder="05XX XXX XX XX" maxlength="13">
+                    <input type="tel" id="regPhone" name="phone" required placeholder="XXX XXX XX XX" maxlength="13">
                 </div>
                 <div class="form-group">
                     <label for="regPassword">Şifre</label>
@@ -512,102 +505,6 @@
         </div>
     </div>
 
-    <!-- Phone Appointment Modal (for staff) -->
-    <div id="phoneAppointmentModal" class="modal">
-        <div class="modal-content phone-appointment-modal">
-            <span class="close" onclick="closeModal('phoneAppointmentModal')">&times;</span>
-            <h2><i class="fas fa-phone"></i> Telefon Randevu Alma</h2>
-            <form id="phoneAppointmentForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="phoneName">Müşteri Ad Soyad</label>
-                        <input type="text" id="phoneName" name="name" required autocomplete="off">
-                        <div id="phone-customer-suggestions" class="suggestions"></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="phonePhone">Telefon</label>
-                        <input type="tel" id="phonePhone" name="phone" required>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Hizmet Kategorisi</label>
-                    <div class="service-category-cards" id="phone-service-category-cards">
-                        <div class="service-category-card" data-category="buz-lazer-epilasyon">
-                            <i class="fas fa-snowflake"></i>
-                            <h4>Buz Başlıklı Lazer Epilasyon</h4>
-                        </div>
-                        <div class="service-category-card" data-category="cilt-bakimlari">
-                            <i class="fas fa-leaf"></i>
-                            <h4>Cilt Bakımları</h4>
-                        </div>
-                        <div class="service-category-card" data-category="el-ayak-bakimi">
-                            <i class="fas fa-hand-paper"></i>
-                            <h4>El Ayak Bakımı</h4>
-                        </div>
-                        <div class="service-category-card" data-category="kalici-makyaj">
-                            <i class="fas fa-palette"></i>
-                            <h4>Kalıcı Makyaj</h4>
-                        </div>
-                        <div class="service-category-card" data-category="zayiflama-islemleri">
-                            <i class="fas fa-weight"></i>
-                            <h4>Zayıflama İşlemleri</h4>
-                        </div>
-                        <div class="service-category-card" data-category="vucut-bakimlari">
-                            <i class="fas fa-spa"></i>
-                            <h4>Vücut Bakımları</h4>
-                        </div>
-                    </div>
-                    <input type="hidden" id="phoneServiceCategory" name="service-category">
-                </div>
-                
-                <div class="form-group" id="phoneSubcategoryGroup" style="display: none;">
-                    <label>Alt Kategori</label>
-                    <div class="service-category-cards" id="phone-subcategory-cards">
-                    </div>
-                    <input type="hidden" id="phoneServiceSubcategory" name="service-subcategory">
-                </div>
-                
-                <div class="form-group" id="phoneStaffGroup" style="display: none;">
-                    <label>Personel Seçimi</label>
-                    <div class="staff-cards" id="phone-staff-cards">
-                    </div>
-                    <input type="hidden" id="phoneStaff" name="staff">
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="phoneDate">Tarih</label>
-                        <input type="date" id="phoneDate" name="date" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Saat</label>
-                        <div class="time-slots" id="phone-time-slots">
-                        </div>
-                        <input type="hidden" id="phoneTime" name="time">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="phoneNotes">Notlar</label>
-                    <textarea id="phoneNotes" name="notes" rows="3" placeholder="Müşteri notları..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="phoneAutoConfirm" name="auto-confirm" checked>
-                        <span class="checkmark"></span>
-                        Randevuyu otomatik onayla
-                    </label>
-                </div>
-                
-                <button type="submit" class="btn-submit">
-                    <i class="fas fa-phone"></i>
-                    Randevu Oluştur
-                </button>
-            </form>
-        </div>
-    </div>
 
     <script src="script.js"></script>
 </body>

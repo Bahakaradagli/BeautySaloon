@@ -19,8 +19,6 @@ let firebase = null;
 let auth = null;
 let db = null;
 let database = null;
-
-// Firebase functions (will be imported when Firebase loads)
 let get = null;
 let set = null;
 let ref = null;
@@ -179,18 +177,88 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup event listeners first
     setupEventListeners();
     
-    // Load data from local storage (fallback)
-    loadDataFromLocalStorage();
-    
-    // Setup scroll effects
-    setupScrollEffects();
-    
-    // Request notification permission
-    requestNotificationPermission();
-    
-    // Firebase initialization is disabled temporarily to prevent errors
-    // TODO: Configure Firebase properly when needed
+    // Wait for Firebase to load
+    const checkFirebase = setInterval(() => {
+        if (window.firebase) {
+            firebase = window.firebase;
+            auth = firebase.auth;
+            db = firebase.db;
+            database = firebase.database;
+            
+            // Import Firebase Realtime Database functions
+            import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js').then(module => {
+                get = module.get;
+                set = module.set;
+                ref = module.ref;
+                push = module.push;
+                remove = module.remove;
+                
+                clearInterval(checkFirebase);
+                
+                // Initialize admin user
+                initializeAdminUser();
+                
+                // Load data from Firebase
+                loadDataFromFirebase();
+                
+                // Setup scroll effects
+                setupScrollEffects();
+                
+                // Request notification permission
+                requestNotificationPermission();
+                
+                // Auto-fill appointment form for logged-in users
+                autoFillAppointmentForm();
+                
+                // Check for reminders every 5 minutes
+                setInterval(checkReminders, 5 * 60 * 1000);
+            }).catch(error => {
+                console.error('Firebase import failed:', error);
+                clearInterval(checkFirebase);
+                
+                // Fallback to localStorage
+                loadDataFromLocalStorage();
+                setupScrollEffects();
+                requestNotificationPermission();
+                autoFillAppointmentForm();
+            });
+        }
+    }, 100);
 });
+
+// Check if user is logged in and get user info
+function getLoggedInUser() {
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+        try {
+            return JSON.parse(currentUser);
+        } catch (error) {
+            console.error('Error parsing current user:', error);
+            return null;
+        }
+    }
+    return null;
+}
+
+// Auto-fill appointment form for logged-in users
+function autoFillAppointmentForm() {
+    const user = getLoggedInUser();
+    if (user) {
+        // Fill the form fields
+        const firstNameInput = document.getElementById('firstName');
+        const lastNameInput = document.getElementById('lastName');
+        const phoneInput = document.getElementById('phone');
+        
+        if (firstNameInput) firstNameInput.value = user.firstName || '';
+        if (lastNameInput) lastNameInput.value = user.lastName || '';
+        if (phoneInput) phoneInput.value = user.phone || '';
+        
+        // Show a subtle indicator that the form is pre-filled
+        if (firstNameInput && lastNameInput && phoneInput) {
+            showInfoMessage('Form bilgileriniz otomatik olarak dolduruldu.');
+        }
+    }
+}
 
 // Firebase data management functions
 async function loadDataFromFirebase() {
@@ -295,8 +363,6 @@ function setupEventListeners() {
     // Appointment form
     document.getElementById('appointmentForm').addEventListener('submit', handleAppointmentSubmit);
     
-    // Phone appointment form
-    document.getElementById('phoneAppointmentForm').addEventListener('submit', handlePhoneAppointmentSubmit);
     
     // Login form
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
@@ -309,29 +375,29 @@ function setupEventListeners() {
         card.addEventListener('click', handleServiceCategoryCardClick);
     });
     
-    // Phone service category cards
-    document.querySelectorAll('#phone-service-category-cards .service-category-card').forEach(card => {
-        card.addEventListener('click', handlePhoneServiceCategoryCardClick);
-    });
     
     // Customer name input for suggestions
     const nameInput = document.getElementById('name');
     if (nameInput) nameInput.addEventListener('input', handleCustomerNameInput);
     
-    const phoneNameInput = document.getElementById('phoneName');
-    if (phoneNameInput) phoneNameInput.addEventListener('input', handlePhoneCustomerNameInput);
     
     // Date change for time slots
     const dateInput = document.getElementById('date');
     if (dateInput) dateInput.addEventListener('change', handleDateChange);
     
-    const phoneDateInput = document.getElementById('phoneDate');
-    if (phoneDateInput) phoneDateInput.addEventListener('change', handlePhoneDateChange);
     
     // Turkish phone number formatting
     const regPhoneInput = document.getElementById('regPhone');
     if (regPhoneInput) {
         regPhoneInput.addEventListener('input', function(e) {
+            formatTurkishPhone(e.target);
+        });
+    }
+    
+    
+    const mainPhoneInput = document.getElementById('phone');
+    if (mainPhoneInput) {
+        mainPhoneInput.addEventListener('input', function(e) {
             formatTurkishPhone(e.target);
         });
     }
@@ -390,7 +456,7 @@ async function handleAppointmentSubmit(e) {
     const serviceCategory = formData.get('service-category');
     const serviceSubcategory = formData.get('service-subcategory');
     const selectedStaff = formData.get('staff');
-    const autoConfirm = formData.get('auto-confirm') === 'on';
+    const autoConfirm = true; // Always auto-confirm appointments
     
     // Get service details
     const serviceDetails = serviceCategories[serviceCategory]?.subcategories.find(sub => sub.value === serviceSubcategory);
@@ -400,7 +466,7 @@ async function handleAppointmentSubmit(e) {
         firstName: formData.get('firstName'),
         lastName: formData.get('lastName'),
         name: `${formData.get('firstName')} ${formData.get('lastName')}`,
-        phone: formData.get('phone'),
+        phone: processPhoneNumber(formData.get('phone')),
         serviceCategory: serviceCategory,
         serviceSubcategory: serviceSubcategory,
         serviceName: serviceDetails?.name || '',
@@ -419,6 +485,9 @@ async function handleAppointmentSubmit(e) {
     if (validateAppointment(appointment)) {
         appointments.push(appointment);
         
+        // Save to localStorage (fallback)
+        localStorage.setItem('appointments', JSON.stringify(appointments));
+        
         // Save to Firebase
         await saveToFirebase('appointments', appointments);
         
@@ -426,9 +495,7 @@ async function handleAppointmentSubmit(e) {
         await addCustomerIfNew(appointment.name, appointment.phone);
         
         // Show success message
-        const message = autoConfirm ? 
-            'Randevunuz başarıyla alındı ve onaylandı!' : 
-            'Randevunuz başarıyla alındı! En kısa sürede sizinle iletişime geçeceğiz.';
+        const message = 'Randevunuz başarıyla alındı ve otomatik olarak onaylandı!';
         showSuccessMessage(message);
         
         // Send WhatsApp message
@@ -450,62 +517,6 @@ async function handleAppointmentSubmit(e) {
     }
 }
 
-// Handle phone appointment form submission
-function handlePhoneAppointmentSubmit(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const serviceCategory = formData.get('service-category');
-    const serviceSubcategory = formData.get('service-subcategory');
-    const selectedStaff = formData.get('staff');
-    const autoConfirm = formData.get('auto-confirm') === 'on';
-    
-    // Get service details
-    const serviceDetails = serviceCategories[serviceCategory]?.subcategories.find(sub => sub.value === serviceSubcategory);
-    
-    const appointment = {
-        id: Date.now(),
-        name: formData.get('name'),
-        phone: formData.get('phone'),
-        serviceCategory: serviceCategory,
-        serviceSubcategory: serviceSubcategory,
-        serviceName: serviceDetails?.name || '',
-        servicePrice: serviceDetails?.price || 0,
-        serviceDuration: serviceDetails?.duration || 30,
-        staff: selectedStaff,
-        date: formData.get('date'),
-        time: formData.get('time'),
-        notes: formData.get('notes'),
-        status: autoConfirm ? 'confirmed' : 'pending',
-        createdAt: new Date().toISOString(),
-        source: 'phone'
-    };
-    
-    // Validate appointment
-    if (validateAppointment(appointment)) {
-        appointments.push(appointment);
-        localStorage.setItem('appointments', JSON.stringify(appointments));
-        
-        // Add customer if new
-        addCustomerIfNew(appointment.name, appointment.phone);
-        
-        // Show success message
-        const message = autoConfirm ? 
-            'Telefon randevusu başarıyla oluşturuldu ve onaylandı!' : 
-            'Telefon randevusu başarıyla oluşturuldu!';
-        showSuccessMessage(message);
-        
-        // Close modal
-        closeModal('phoneAppointmentModal');
-        
-        // Reset form
-        e.target.reset();
-        resetPhoneAppointmentForm();
-        
-        // Update appointments display
-        loadAppointments();
-    }
-}
 
 // Validate appointment
 function validateAppointment(appointment) {
@@ -534,31 +545,28 @@ async function handleLogin(e) {
     
     console.log('Giriş denemesi:', { email, password });
     
-    try {
-        // Try Firebase Authentication first
-        if (auth) {
-            const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-            
-            currentUser = {
-                id: user.uid,
-                name: user.displayName || 'Admin',
-                email: user.email,
-                role: 'admin'
-            };
-            
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            closeModal('loginModal');
-            updateNavForLoggedInUser();
-            showSuccessMessage('Başarıyla giriş yaptınız!');
-            return;
-        }
-    } catch (error) {
-        console.log('Firebase auth failed, trying local auth:', error);
+    // Check for specific admin credentials
+    if (email === 'admingülcemal@gmail.com' && password === '123456789') {
+        currentUser = {
+            id: 'admin-001',
+            name: 'Admin Gülcemal',
+            email: 'admingülcemal@gmail.com',
+            role: 'admin',
+            firstName: 'Admin',
+            lastName: 'Gülcemal'
+        };
+        
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        closeModal('loginModal');
+        updateNavForLoggedInUser();
+        showSuccessMessage('Başarıyla giriş yaptınız!');
+        
+        // Auto-fill appointment form for logged-in user
+        autoFillAppointmentForm();
+        return;
     }
     
-    // Fallback to local authentication
+    // For all other users, check regular user database
     const user = users.find(u => u.email === email && u.password === password);
     
     if (user) {
@@ -567,6 +575,9 @@ async function handleLogin(e) {
         closeModal('loginModal');
         updateNavForLoggedInUser();
         showSuccessMessage('Başarıyla giriş yaptınız!');
+        
+        // Auto-fill appointment form for logged-in user
+        autoFillAppointmentForm();
     } else {
         console.log('Giriş başarısız - kullanıcı bulunamadı');
         showErrorMessage('E-posta veya şifre hatalı!');
@@ -601,11 +612,14 @@ async function handleRegister(e) {
         return;
     }
     
-    // Validate Turkish phone number
+    // Validate Turkish phone number (before processing)
     if (!validateTurkishPhone(phone)) {
-        showErrorMessage('Geçerli bir Türk telefon numarası girin! (05XX XXX XX XX)');
+        showErrorMessage('Geçerli bir Türk telefon numarası girin! (XXX XXX XX XX)');
         return;
     }
+    
+    // Process phone number to add +90 prefix
+    const processedPhone = processPhoneNumber(phone);
     
     const user = {
         id: Date.now(),
@@ -613,7 +627,7 @@ async function handleRegister(e) {
         lastName: lastName,
         name: `${firstName} ${lastName}`,
         email: email,
-        phone: phone,
+        phone: processedPhone,
         password: password,
         createdAt: new Date().toISOString()
     };
@@ -633,6 +647,11 @@ async function handleRegister(e) {
     }
     
     users.push(user);
+    
+    // Save to localStorage (fallback)
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    // Save to Firebase
     await saveToFirebase('users', users);
     
     closeModal('registerModal');
@@ -644,21 +663,34 @@ function validateTurkishPhone(phone) {
     // Remove all non-digit characters
     const cleanPhone = phone.replace(/\D/g, '');
     
-    // Turkish mobile numbers start with 05 and are 11 digits total
-    const turkishMobileRegex = /^05[0-9]{9}$/;
+    // Accept 10-digit numbers starting with 5 (Turkish mobile format)
+    if (cleanPhone.length === 10 && cleanPhone.startsWith('5')) {
+        return true;
+    }
     
-    return turkishMobileRegex.test(cleanPhone);
+    // Accept 11-digit numbers starting with 05 (with leading zero)
+    if (cleanPhone.length === 11 && cleanPhone.startsWith('05')) {
+        return true;
+    }
+    
+    return false;
 }
 
 // Format Turkish phone number as user types
 function formatTurkishPhone(input) {
     let value = input.value.replace(/\D/g, '');
     
-    // Limit to 11 digits (Turkish mobile number length)
-    if (value.length > 11) {
-        value = value.slice(0, 11);
+    // Remove leading 0 if present
+    if (value.startsWith('0')) {
+        value = value.substring(1);
     }
     
+    // Limit to 10 digits (Turkish mobile number without country code)
+    if (value.length > 10) {
+        value = value.slice(0, 10);
+    }
+    
+    // Format as XXX XXX XX XX
     if (value.length > 0) {
         if (value.length <= 3) {
             value = value;
@@ -666,25 +698,40 @@ function formatTurkishPhone(input) {
             value = value.slice(0, 3) + ' ' + value.slice(3);
         } else if (value.length <= 8) {
             value = value.slice(0, 3) + ' ' + value.slice(3, 6) + ' ' + value.slice(6);
-        } else if (value.length <= 10) {
-            value = value.slice(0, 3) + ' ' + value.slice(3, 6) + ' ' + value.slice(6, 8) + ' ' + value.slice(8);
         } else {
-            value = value.slice(0, 3) + ' ' + value.slice(3, 6) + ' ' + value.slice(6, 8) + ' ' + value.slice(8, 10);
+            value = value.slice(0, 3) + ' ' + value.slice(3, 6) + ' ' + value.slice(6, 8) + ' ' + value.slice(8);
         }
     }
     
     input.value = value;
 }
 
+// Process phone number to add +90 prefix
+function processPhoneNumber(phone) {
+    if (!phone) return phone;
+    
+    // Remove all non-digit characters
+    let cleanPhone = phone.replace(/\D/g, '');
+    
+    // Remove leading 0 if present
+    if (cleanPhone.startsWith('0')) {
+        cleanPhone = cleanPhone.substring(1);
+    }
+    
+    // Add +90 prefix
+    return '+90' + cleanPhone;
+}
+
 // Update navigation for logged in user
 function updateNavForLoggedInUser() {
     const navActions = document.querySelector('.nav-actions');
+    
+    // Check if user is the specific admin
+    const isAdmin = currentUser.email === 'admingülcemal@gmail.com';
+    
     navActions.innerHTML = `
         <span class="user-info">Hoş geldin, ${currentUser.name}!</span>
-        <button class="btn-login" onclick="showPhoneAppointmentModal()">
-            <i class="fas fa-phone"></i> Telefon Randevu
-        </button>
-        <button class="btn-login" onclick="showAdminPanel()">Yönetim</button>
+        ${isAdmin ? '<button class="btn-login" onclick="showAdminPanel()">Yönetim</button>' : ''}
         <button class="btn-register" onclick="logout()">Çıkış</button>
     `;
 }
@@ -693,12 +740,28 @@ function updateNavForLoggedInUser() {
 function logout() {
     currentUser = null;
     localStorage.removeItem('currentUser');
+    
+    // Clear appointment form fields
+    const firstNameInput = document.getElementById('firstName');
+    const lastNameInput = document.getElementById('lastName');
+    const phoneInput = document.getElementById('phone');
+    
+    if (firstNameInput) firstNameInput.value = '';
+    if (lastNameInput) lastNameInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    
     location.reload();
 }
 
 // Show admin panel
 function showAdminPanel() {
     if (!currentUser) return;
+    
+    // Only allow specific admin user
+    if (currentUser.email !== 'admingülcemal@gmail.com') {
+        showErrorMessage('Bu sayfaya erişim yetkiniz yok!');
+        return;
+    }
     
     const adminHTML = `
         <div class="admin-panel">
@@ -713,6 +776,9 @@ function showAdminPanel() {
                 <button class="tab-btn" onclick="showTab('customers')">
                     <i class="fas fa-users"></i> Müşteriler
                 </button>
+                <button class="tab-btn" onclick="showTab('users')">
+                    <i class="fas fa-user-plus"></i> Kayıtlı Kullanıcılar
+                </button>
                 <button class="tab-btn" onclick="showTab('services')">
                     <i class="fas fa-spa"></i> Hizmetler
                 </button>
@@ -726,9 +792,6 @@ function showAdminPanel() {
             <div id="appointments-tab" class="tab-content active">
                 <div class="tab-header">
                     <h3><i class="fas fa-calendar-alt"></i> Randevu Yönetimi</h3>
-                    <button class="btn-primary" onclick="showPhoneAppointmentModal()">
-                        <i class="fas fa-phone"></i> Telefon Randevu
-                    </button>
                 </div>
                 <div class="appointment-filters">
                     <select id="status-filter" onchange="filterAppointments()">
@@ -780,6 +843,34 @@ function showAdminPanel() {
                     </button>
                 </div>
                 <div id="customers-list"></div>
+            </div>
+            <div id="users-tab" class="tab-content">
+                <h3><i class="fas fa-user-plus"></i> Kayıtlı Kullanıcılar</h3>
+                <div class="user-actions">
+                    <button class="btn-primary" onclick="exportUsers()">
+                        <i class="fas fa-download"></i> Kullanıcıları Dışa Aktar
+                    </button>
+                    <button class="btn-secondary" onclick="loadUsers()">
+                        <i class="fas fa-refresh"></i> Yenile
+                    </button>
+                </div>
+                <div class="user-stats">
+                    <div class="stat-card">
+                        <i class="fas fa-users"></i>
+                        <div class="stat-info">
+                            <span class="stat-number" id="total-users">0</span>
+                            <span class="stat-label">Toplam Kullanıcı</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-user-check"></i>
+                        <div class="stat-info">
+                            <span class="stat-number" id="active-users">0</span>
+                            <span class="stat-label">Aktif Kullanıcı</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="users-list"></div>
             </div>
             <div id="services-tab" class="tab-content">
                 <h3><i class="fas fa-spa"></i> Hizmet Yönetimi</h3>
@@ -868,6 +959,7 @@ function loadAdminData() {
     loadAppointmentsList();
     loadRevenueData();
     loadCustomersList();
+    loadUsers();
     loadServicesList();
     loadStaffList();
     loadSettings();
@@ -1287,6 +1379,107 @@ function loadSettings() {
     document.getElementById('reminder-hours-setting').value = settings.reminderHours;
 }
 
+// Load and display users
+function loadUsers() {
+    const usersList = document.getElementById('users-list');
+    if (!usersList) return;
+    
+    // Filter out admin users
+    const regularUsers = users.filter(user => user.role !== 'admin');
+    
+    // Update stats
+    document.getElementById('total-users').textContent = regularUsers.length;
+    document.getElementById('active-users').textContent = regularUsers.filter(user => user.lastLogin).length;
+    
+    if (regularUsers.length === 0) {
+        usersList.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><p>Henüz kayıtlı kullanıcı yok</p></div>';
+        return;
+    }
+    
+    const usersHTML = regularUsers.map(user => `
+        <div class="user-card">
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-details">
+                    <h4>${user.name}</h4>
+                    <p><i class="fas fa-envelope"></i> ${user.email}</p>
+                    <p><i class="fas fa-phone"></i> ${user.phone}</p>
+                    <p><i class="fas fa-calendar"></i> Kayıt: ${new Date(user.createdAt).toLocaleDateString('tr-TR')}</p>
+                    ${user.lastLogin ? `<p><i class="fas fa-sign-in-alt"></i> Son giriş: ${new Date(user.lastLogin).toLocaleDateString('tr-TR')}</p>` : ''}
+                </div>
+            </div>
+            <div class="user-actions">
+                <button class="btn-sm btn-primary" onclick="sendUserMessage('${user.phone}', '${user.name}')">
+                    <i class="fab fa-whatsapp"></i> Mesaj
+                </button>
+                <button class="btn-sm btn-secondary" onclick="viewUserAppointments('${user.email}')">
+                    <i class="fas fa-calendar"></i> Randevular
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    usersList.innerHTML = usersHTML;
+}
+
+// Export users to CSV
+function exportUsers() {
+    const regularUsers = users.filter(user => user.role !== 'admin');
+    
+    if (regularUsers.length === 0) {
+        showErrorMessage('Dışa aktarılacak kullanıcı bulunamadı!');
+        return;
+    }
+    
+    const csvContent = [
+        ['Ad', 'Soyad', 'E-posta', 'Telefon', 'Kayıt Tarihi', 'Son Giriş'].join(','),
+        ...regularUsers.map(user => [
+            user.firstName,
+            user.lastName,
+            user.email,
+            user.phone,
+            new Date(user.createdAt).toLocaleDateString('tr-TR'),
+            user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('tr-TR') : 'Hiç giriş yapmamış'
+        ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `kullanicilar_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showSuccessMessage('Kullanıcılar başarıyla dışa aktarıldı!');
+}
+
+// Send message to user
+function sendUserMessage(phone, name) {
+    const message = `Merhaba ${name}! Güzellik salonumuzdan selamlar. Size özel kampanyalarımız hakkında bilgi almak ister misiniz?`;
+    const whatsappUrl = `https://wa.me/${phone.replace('+', '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+// View user appointments
+function viewUserAppointments(email) {
+    const userAppointments = appointments.filter(apt => apt.email === email);
+    
+    if (userAppointments.length === 0) {
+        showErrorMessage('Bu kullanıcının randevusu bulunamadı!');
+        return;
+    }
+    
+    // Switch to appointments tab and filter by user
+    showTab('appointments');
+    // You can add filtering logic here
+    showSuccessMessage(`${userAppointments.length} randevu bulundu!`);
+}
+
 // Update setting
 function updateSetting(key, value) {
     settings[key] = value;
@@ -1663,6 +1856,20 @@ function showSuccessMessage(message) {
     }, 5000);
 }
 
+// Show info message
+function showInfoMessage(message) {
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'info-message';
+    infoDiv.textContent = message;
+    infoDiv.style.display = 'block';
+    
+    document.body.appendChild(infoDiv);
+    
+    setTimeout(() => {
+        infoDiv.remove();
+    }, 3000);
+}
+
 // Show error message
 function showErrorMessage(message) {
     alert(message);
@@ -1870,140 +2077,11 @@ function handleStaffCardClick(e) {
 }
 
 // Phone service category card click handler
-function handlePhoneServiceCategoryCardClick(e) {
-    const category = e.currentTarget.dataset.category;
-    const subcategoryGroup = document.getElementById('phoneSubcategoryGroup');
-    const subcategoryCards = document.getElementById('phone-subcategory-cards');
-    const staffGroup = document.getElementById('phoneStaffGroup');
-    const staffCards = document.getElementById('phone-staff-cards');
-    
-    // Remove active class from all phone category cards
-    document.querySelectorAll('#phone-service-category-cards .service-category-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Add active class to clicked card
-    e.currentTarget.classList.add('selected');
-    
-    // Set hidden input value
-    document.getElementById('phoneServiceCategory').value = category;
-    
-    if (category && serviceCategories[category]) {
-        // Show subcategory group
-        subcategoryGroup.style.display = 'block';
-        
-        // Populate subcategories
-        subcategoryCards.innerHTML = '';
-        serviceCategories[category].subcategories.forEach(sub => {
-            const card = document.createElement('div');
-            card.className = 'service-category-card';
-            card.dataset.subcategory = sub.value;
-            card.innerHTML = `
-                <i class="fas fa-spa"></i>
-                <h4>${sub.name}</h4>
-                <p>${sub.duration} dk - ${sub.price}₺</p>
-            `;
-            card.addEventListener('click', handlePhoneSubcategoryCardClick);
-            subcategoryCards.appendChild(card);
-        });
-        
-        // Show staff group
-        staffGroup.style.display = 'block';
-        
-        // Populate staff
-        staffCards.innerHTML = '';
-        staff.forEach(member => {
-            if (member.specialty === serviceCategories[category].name || member.specialty === 'Tümü') {
-                const card = document.createElement('div');
-                card.className = 'staff-card';
-                card.dataset.staff = member.id;
-                card.innerHTML = `
-                    <div class="staff-avatar">${member.avatar}</div>
-                    <h4>${member.name}</h4>
-                    <p>${member.specialty}</p>
-                `;
-                card.addEventListener('click', handlePhoneStaffCardClick);
-                staffCards.appendChild(card);
-            }
-        });
-    } else {
-        subcategoryGroup.style.display = 'none';
-        staffGroup.style.display = 'none';
-    }
-}
 
 // Phone subcategory card click handler
-function handlePhoneSubcategoryCardClick(e) {
-    const subcategory = e.currentTarget.dataset.subcategory;
-    
-    // Remove active class from all phone subcategory cards
-    document.querySelectorAll('#phone-subcategory-cards .service-category-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Add active class to clicked card
-    e.currentTarget.classList.add('selected');
-    
-    // Set hidden input value
-    document.getElementById('phoneServiceSubcategory').value = subcategory;
-}
 
 // Phone staff card click handler
-function handlePhoneStaffCardClick(e) {
-    const staffId = e.currentTarget.dataset.staff;
-    
-    // Remove active class from all phone staff cards
-    document.querySelectorAll('#phone-staff-cards .staff-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Add active class to clicked card
-    e.currentTarget.classList.add('selected');
-    
-    // Set hidden input value
-    document.getElementById('phoneStaff').value = staffId;
-}
 
-function handlePhoneServiceCategoryChange(e) {
-    const category = e.target.value;
-    const subcategoryGroup = document.getElementById('phoneSubcategoryGroup');
-    const subcategorySelect = document.getElementById('phoneServiceSubcategory');
-    const staffGroup = document.getElementById('phoneStaffGroup');
-    const staffSelect = document.getElementById('phoneStaff');
-    
-    if (category && serviceCategories[category]) {
-        // Show subcategory group
-        subcategoryGroup.style.display = 'block';
-        
-        // Populate subcategories
-        subcategorySelect.innerHTML = '<option value="">Alt kategori seçin</option>';
-        serviceCategories[category].subcategories.forEach(sub => {
-            const option = document.createElement('option');
-            option.value = sub.value;
-            option.textContent = sub.name;
-            option.dataset.duration = sub.duration;
-            option.dataset.price = sub.price;
-            subcategorySelect.appendChild(option);
-        });
-        
-        // Show staff group
-        staffGroup.style.display = 'block';
-        
-        // Populate staff
-        staffSelect.innerHTML = '<option value="">Personel seçin</option>';
-        staff.forEach(member => {
-            if (member.specialty === serviceCategories[category].name || member.specialty === 'Tümü') {
-                const option = document.createElement('option');
-                option.value = member.id;
-                option.textContent = member.name;
-                staffSelect.appendChild(option);
-            }
-        });
-    } else {
-        subcategoryGroup.style.display = 'none';
-        staffGroup.style.display = 'none';
-    }
-}
 
 // Customer name input handlers
 function handleCustomerNameInput(e) {
@@ -2031,30 +2109,6 @@ function handleCustomerNameInput(e) {
     }
 }
 
-function handlePhoneCustomerNameInput(e) {
-    const name = e.target.value;
-    const suggestions = document.getElementById('phone-customer-suggestions');
-    
-    if (name.length > 1) {
-        const matches = customers.filter(customer => 
-            customer.name.toLowerCase().includes(name.toLowerCase())
-        );
-        
-        if (matches.length > 0) {
-            suggestions.innerHTML = matches.map(customer => 
-                `<div class="suggestion-item" onclick="selectPhoneCustomer('${customer.name}', '${customer.phone}')">
-                    <strong>${customer.name}</strong><br>
-                    <small>${customer.phone}</small>
-                </div>`
-            ).join('');
-            suggestions.style.display = 'block';
-        } else {
-            suggestions.style.display = 'none';
-        }
-    } else {
-        suggestions.style.display = 'none';
-    }
-}
 
 // Customer selection functions
 function selectCustomer(name, phone) {
@@ -2063,11 +2117,6 @@ function selectCustomer(name, phone) {
     document.getElementById('customer-suggestions').style.display = 'none';
 }
 
-function selectPhoneCustomer(name, phone) {
-    document.getElementById('phoneName').value = name;
-    document.getElementById('phonePhone').value = phone;
-    document.getElementById('phone-customer-suggestions').style.display = 'none';
-}
 
 // Date change handlers
 function handleDateChange(e) {
@@ -2079,14 +2128,6 @@ function handleDateChange(e) {
     }
 }
 
-function handlePhoneDateChange(e) {
-    const date = e.target.value;
-    const timeSlots = document.getElementById('phone-time-slots');
-    
-    if (date) {
-        generateTimeSlotCards(date, timeSlots);
-    }
-}
 
 // Generate time slot cards
 function generateTimeSlotCards(date, container) {
@@ -2191,16 +2232,7 @@ function resetAppointmentForm() {
     document.getElementById('customer-suggestions').style.display = 'none';
 }
 
-function resetPhoneAppointmentForm() {
-    document.getElementById('phoneSubcategoryGroup').style.display = 'none';
-    document.getElementById('phoneStaffGroup').style.display = 'none';
-    document.getElementById('phone-customer-suggestions').style.display = 'none';
-}
 
-// Show phone appointment modal
-function showPhoneAppointmentModal() {
-    document.getElementById('phoneAppointmentModal').style.display = 'block';
-}
 
 // Wizard Step Navigation
 let currentStep = 1;
@@ -2380,8 +2412,6 @@ window.showAdminPanel = showAdminPanel;
 window.logout = logout;
 window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
-window.showPhoneAppointmentModal = showPhoneAppointmentModal;
 window.selectCustomer = selectCustomer;
-window.selectPhoneCustomer = selectPhoneCustomer;
 window.nextStep = nextStep;
 window.prevStep = prevStep;
