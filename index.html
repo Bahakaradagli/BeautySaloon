@@ -109,100 +109,91 @@
 
     <!-- Admin Panel Section (Hidden by default) -->
     <section id="admin-panel" class="admin-panel-section" style="display: none;">
-        <div class="container">
-            <div class="admin-panel">
-                <h2><i class="fas fa-cogs"></i> Yönetim Paneli</h2>
-                <div class="admin-tabs">
-                    <button class="tab-btn active" onclick="showTab('revenue')">
-                        <i class="fas fa-chart-line"></i> Gelir-Gider
+        <div class="admin-layout">
+            <!-- Admin Header -->
+            <header class="admin-header">
+                <div class="admin-brand">
+                    <div class="admin-logo">
+                        <i class="fas fa-spa"></i>
+                    </div>
+                    <div class="admin-brand-text">
+                        <h1>Admin Panel</h1>
+                        <p>Buse Gülcemal</p>
+                    </div>
+                </div>
+                <div class="admin-header-actions">
+                    <span class="admin-welcome">Hoş geldin, Admin!</span>
+                    <button class="btn-home" onclick="goToHomePage()">
+                        <i class="fas fa-home"></i>
+                        <span>Ana Sayfa</span>
                     </button>
-                    <button class="tab-btn" onclick="showTab('customers')">
-                        <i class="fas fa-users"></i> Müşteriler
-                    </button>
-                    <button class="tab-btn" onclick="showTab('services')">
-                        <i class="fas fa-spa"></i> Hizmetler
-                    </button>
-                    <button class="tab-btn" onclick="showTab('staff')">
-                        <i class="fas fa-user-tie"></i> Personel
-                    </button>
-                    <button class="tab-btn" onclick="showTab('settings')">
-                        <i class="fas fa-cog"></i> Ayarlar
+                    <button class="btn-logout" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Çıkış</span>
                     </button>
                 </div>
-                <div id="revenue-tab" class="tab-content active">
-                    <h3><i class="fas fa-chart-line"></i> Gelir-Gider Takibi</h3>
-                    <div class="revenue-stats">
-                        <div class="stat-card">
-                            <h4>Toplam Gelir</h4>
-                            <span id="total-revenue">0₺</span>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Bu Ay</h4>
-                            <span id="monthly-revenue">0₺</span>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Bugün</h4>
-                            <span id="daily-revenue">0₺</span>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Toplam Randevu</h4>
-                            <span id="total-appointments">0</span>
-                        </div>
-                    </div>
-                    <div class="revenue-actions">
-                        <button class="btn-primary" onclick="showAddExpenseModal()">
-                            <i class="fas fa-plus"></i> Gider Ekle
-                        </button>
-                        <button class="btn-primary" onclick="showRevenueReport()">
-                            <i class="fas fa-chart-bar"></i> Rapor
-                        </button>
-                    </div>
-                    <div id="revenue-list"></div>
-                </div>
-                <div id="customers-tab" class="tab-content">
-                    <h3><i class="fas fa-users"></i> Müşteri Yönetimi</h3>
-                    <div class="customer-actions">
-                        <button class="btn-primary" onclick="sendBulkWhatsAppMessage()">
-                            <i class="fab fa-whatsapp"></i> Toplu Mesaj
-                        </button>
-                    </div>
-                    <div id="customers-list"></div>
-                </div>
-                <div id="services-tab" class="tab-content">
-                    <h3><i class="fas fa-spa"></i> Hizmet Yönetimi</h3>
-                    <div class="service-actions">
-                        <button class="btn-primary" onclick="showAddServiceModal()">
-                            <i class="fas fa-plus"></i> Hizmet Ekle
-                        </button>
-                    </div>
-                    <div id="services-list"></div>
-                </div>
-                <div id="staff-tab" class="tab-content">
-                    <h3><i class="fas fa-user-tie"></i> Personel Yönetimi</h3>
-                    <div class="staff-actions">
-                        <button class="btn-primary" onclick="showAddStaffModal()">
-                            <i class="fas fa-plus"></i> Personel Ekle
-                        </button>
-                    </div>
-                    <div id="staff-list"></div>
-                </div>
-                <div id="settings-tab" class="tab-content">
-                    <h3><i class="fas fa-cog"></i> Sistem Ayarları</h3>
-                    <div class="settings-grid">
-                        <div class="setting-item">
-                            <label>Otomatik Onay</label>
-                            <input type="checkbox" id="auto-confirm-setting" onchange="updateSetting('autoConfirm', this.checked)">
-                        </div>
-                        <div class="setting-item">
-                            <label>WhatsApp Hatırlatma</label>
-                            <input type="checkbox" id="whatsapp-reminder-setting" onchange="updateSetting('whatsappReminder', this.checked)">
-                        </div>
-                        <div class="setting-item">
-                            <label>Hatırlatma Saati (saat öncesi)</label>
-                            <input type="number" id="reminder-hours-setting" onchange="updateSetting('reminderHours', this.value)" min="1" max="24">
+            </header>
+
+            <!-- Admin Content -->
+            <div class="admin-content">
+                <!-- Sidebar -->
+                <aside class="admin-sidebar">
+                    <nav class="admin-nav">
+                        <ul class="admin-nav-list">
+                            <li class="nav-item active" onclick="showAdminTab('appointments')">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Randevular</span>
+                            </li>
+                            <li class="nav-item" onclick="showAdminTab('phone-appointments')">
+                                <i class="fas fa-phone"></i>
+                                <span>Telefon Randevu</span>
+                            </li>
+                            <li class="nav-item" onclick="showAdminTab('revenue')">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Gelir-Gider</span>
+                            </li>
+                            <li class="nav-item" onclick="showAdminTab('customers')">
+                                <i class="fas fa-users"></i>
+                                <span>Müşteriler</span>
+                            </li>
+                            <li class="nav-item" onclick="showAdminTab('services')">
+                                <i class="fas fa-spa"></i>
+                                <span>Hizmetler</span>
+                            </li>
+                            <li class="nav-item" onclick="showAdminTab('staff')">
+                                <i class="fas fa-user-tie"></i>
+                                <span>Personel</span>
+                            </li>
+                            <li class="nav-item" onclick="showAdminTab('settings')">
+                                <i class="fas fa-cog"></i>
+                                <span>Ayarlar</span>
+                            </li>
+                        </ul>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <main class="admin-main">
+                    <div class="admin-main-header">
+                        <h2 id="admin-section-title">
+                            <i class="fas fa-calendar-alt"></i>
+                            Randevu Yönetimi
+                        </h2>
+                        <div class="admin-filters" id="admin-filters">
+                            <select class="filter-select">
+                                <option>Tüm Durumlar</option>
+                                <option>Beklemede</option>
+                                <option>Onaylandı</option>
+                                <option>Tamamlandı</option>
+                                <option>İptal</option>
+                            </select>
+                            <input type="date" class="filter-date" placeholder="gg.aa.yyyy">
                         </div>
                     </div>
-                </div>
+                    <div class="admin-main-content" id="admin-main-content">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </main>
             </div>
         </div>
     </section>

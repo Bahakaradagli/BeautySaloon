@@ -5,6 +5,11 @@ let currentUser = null;
 let customers = [];
 let services = [];
 let staff = [];
+let staffSalaries = []; // Personel maaş bilgileri
+let staffAccounts = []; // Personel hesapları
+let staffAvailability = []; // Personel müsaitlik bilgileri
+let staffAppointments = []; // Personel atanan randevular
+let invoices = []; // Adisyon/fatura sistemi
 let settings = {
     autoConfirm: false,
     whatsappReminder: true,
@@ -336,6 +341,10 @@ function loadFromLocalStorage() {
     customers = JSON.parse(localStorage.getItem('customers')) || [];
     services = JSON.parse(localStorage.getItem('services')) || [];
     staff = JSON.parse(localStorage.getItem('staff')) || defaultStaff;
+    staffSalaries = JSON.parse(localStorage.getItem('staffSalaries')) || [];
+    staffAccounts = JSON.parse(localStorage.getItem('staffAccounts')) || [];
+    staffAvailability = JSON.parse(localStorage.getItem('staffAvailability')) || [];
+    invoices = JSON.parse(localStorage.getItem('invoices')) || [];
     settings = JSON.parse(localStorage.getItem('settings')) || settings;
     expenses = JSON.parse(localStorage.getItem('expenses')) || [];
     transactions = JSON.parse(localStorage.getItem('transactions')) || [];
@@ -773,17 +782,18 @@ function updateNavForLoggedInUser() {
     const isAdmin = currentUser && currentUser.email === 'admingülcemal@gmail.com';
     console.log('Is admin:', isAdmin);
     
-    navActions.innerHTML = `
-        <span class="user-info">Hoş geldin, ${currentUser.name}!</span>
-        ${!isAdmin ? '<button class="btn-login" onclick="showMyAppointments()">Randevularım</button>' : ''}
-        <button class="btn-register" onclick="logout()">Çıkış</button>
-    `;
-    
-    // If admin, show admin panel and hide regular sections
+    // Hide nav actions for admin
     if (isAdmin) {
+        navActions.style.display = 'none';
         console.log('Calling showAdminView for admin user');
         showAdminView();
     } else {
+        navActions.style.display = 'flex';
+        navActions.innerHTML = `
+            <span class="user-info">Hoş geldin, ${currentUser.name}!</span>
+            <button class="btn-login" onclick="showMyAppointments()">Randevularım</button>
+            <button class="btn-register" onclick="logout()">Çıkış</button>
+        `;
         console.log('Calling showRegularView for regular user');
         showRegularView();
     }
@@ -849,9 +859,644 @@ function showAdminView() {
         console.log('Admin panel shown');
         // Load admin data
         loadAdminData();
+        // Load default tab (appointments)
+        showAdminTab('appointments');
     } else {
         console.error('Admin panel element not found!');
     }
+}
+
+// Admin Tab Navigation
+function showAdminTab(tabName) {
+    // Update active nav item
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.target.closest('.nav-item').classList.add('active');
+    
+    // Update section title and content
+    const sectionTitles = {
+        'appointments': { title: 'Randevu Yönetimi', icon: 'fas fa-calendar-alt' },
+        'phone-appointments': { title: 'Telefon Randevu Yönetimi', icon: 'fas fa-phone' },
+        'revenue': { title: 'Gelir-Gider Takibi', icon: 'fas fa-chart-line' },
+        'customers': { title: 'Müşteri Yönetimi', icon: 'fas fa-users' },
+        'services': { title: 'Hizmet Yönetimi', icon: 'fas fa-spa' },
+        'staff': { title: 'Personel Yönetimi', icon: 'fas fa-user-tie' },
+        'settings': { title: 'Sistem Ayarları', icon: 'fas fa-cog' }
+    };
+    
+    const section = sectionTitles[tabName];
+    if (section) {
+        document.getElementById('admin-section-title').innerHTML = `
+            <i class="${section.icon}"></i>
+            ${section.title}
+        `;
+    }
+    
+    // Load content based on tab
+    loadAdminTabContent(tabName);
+}
+
+// Load admin tab content
+function loadAdminTabContent(tabName) {
+    const content = document.getElementById('admin-main-content');
+    
+    switch(tabName) {
+        case 'appointments':
+            loadAppointmentsContent();
+            break;
+        case 'phone-appointments':
+            loadPhoneAppointmentsContent();
+            break;
+        case 'revenue':
+            loadRevenueContent();
+            break;
+        case 'customers':
+            loadCustomersContent();
+            break;
+        case 'services':
+            loadServicesContent();
+            break;
+        case 'staff':
+            loadStaffContent();
+            break;
+        case 'settings':
+            loadSettingsContent();
+            break;
+    }
+}
+
+// Load appointments content
+function loadAppointmentsContent() {
+    const content = document.getElementById('admin-main-content');
+    
+    const appointmentsHTML = `
+        <div class="appointments-management">
+            <div class="appointments-stats">
+                <div class="stat-card">
+                    <h4>Toplam Randevu</h4>
+                    <span class="stat-number">${appointments.length}</span>
+                </div>
+                <div class="stat-card">
+                    <h4>Bu Ay</h4>
+                    <span class="stat-number">${appointments.filter(apt => {
+                        const aptDate = new Date(apt.date);
+                        const now = new Date();
+                        return aptDate.getMonth() === now.getMonth() && aptDate.getFullYear() === now.getFullYear();
+                    }).length}</span>
+                </div>
+                <div class="stat-card">
+                    <h4>Bugün</h4>
+                    <span class="stat-number">${appointments.filter(apt => apt.date === new Date().toISOString().split('T')[0]).length}</span>
+                </div>
+            </div>
+            
+            <div class="appointments-list">
+                <h3>Randevu Listesi</h3>
+                <div class="appointments-grid">
+                    ${appointments.map(appointment => `
+                        <div class="appointment-card">
+                            <div class="appointment-header">
+                                <h4>${appointment.name}</h4>
+                                <span class="status-badge ${appointment.status}">${getStatusText(appointment.status)}</span>
+                            </div>
+                            <div class="appointment-details">
+                                <p><i class="fas fa-calendar"></i> ${formatDate(appointment.date)}</p>
+                                <p><i class="fas fa-clock"></i> ${appointment.time}</p>
+                                <p><i class="fas fa-spa"></i> ${appointment.serviceName}</p>
+                                <p><i class="fas fa-phone"></i> ${appointment.phone}</p>
+                            </div>
+                            <div class="appointment-actions">
+                                <select onchange="updateAppointmentStatus(${appointment.id}, this.value)">
+                                    <option value="pending" ${appointment.status === 'pending' ? 'selected' : ''}>Beklemede</option>
+                                    <option value="confirmed" ${appointment.status === 'confirmed' ? 'selected' : ''}>Onaylandı</option>
+                                    <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Tamamlandı</option>
+                                    <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>İptal</option>
+                                </select>
+                                <button class="btn-whatsapp" onclick="sendWhatsAppMessage('${appointment.phone}')">
+                                    <i class="fab fa-whatsapp"></i>
+                                </button>
+                                <button class="btn-delete" onclick="deleteAppointment(${appointment.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    content.innerHTML = appointmentsHTML;
+}
+
+// Load revenue content
+function loadRevenueContent() {
+    const content = document.getElementById('admin-main-content');
+    
+    const totalRevenue = appointments
+        .filter(apt => apt.status === 'completed')
+        .reduce((sum, apt) => sum + (apt.servicePrice || 0), 0);
+    
+    const monthlyRevenue = appointments
+        .filter(apt => {
+            const aptDate = new Date(apt.date);
+            const now = new Date();
+            return apt.status === 'completed' && 
+                   aptDate.getMonth() === now.getMonth() && 
+                   aptDate.getFullYear() === now.getFullYear();
+        })
+        .reduce((sum, apt) => sum + (apt.servicePrice || 0), 0);
+    
+    const contentHTML = `
+        <div class="revenue-management">
+            <div class="revenue-stats">
+                <div class="stat-card">
+                    <h4>Toplam Gelir</h4>
+                    <span class="stat-number">${totalRevenue}₺</span>
+                </div>
+                <div class="stat-card">
+                    <h4>Bu Ay</h4>
+                    <span class="stat-number">${monthlyRevenue}₺</span>
+                </div>
+                <div class="stat-card">
+                    <h4>Toplam Randevu</h4>
+                    <span class="stat-number">${appointments.length}</span>
+                </div>
+            </div>
+            
+            <div class="revenue-actions">
+                <button class="btn-primary" onclick="showAddExpenseModal()">
+                    <i class="fas fa-plus"></i> Gider Ekle
+                </button>
+                <button class="btn-primary" onclick="showRevenueReport()">
+                    <i class="fas fa-chart-bar"></i> Rapor
+                </button>
+            </div>
+            
+            <div id="revenue-list"></div>
+        </div>
+    `;
+    
+    content.innerHTML = contentHTML;
+    loadRevenueList();
+}
+
+// Load services content
+function loadServicesContent() {
+    const content = document.getElementById('admin-main-content');
+    
+    const contentHTML = `
+        <div class="services-management">
+            <div class="service-actions">
+                <button class="btn-primary" onclick="showAddServiceModal()">
+                    <i class="fas fa-plus"></i> Hizmet Ekle
+                </button>
+                <button class="btn-secondary" onclick="showEditServiceModal()">
+                    <i class="fas fa-edit"></i> Hizmet Düzenle
+                </button>
+            </div>
+            <div id="services-list"></div>
+        </div>
+    `;
+    
+    content.innerHTML = contentHTML;
+    loadServicesList();
+}
+
+// Load staff content
+function loadStaffContent() {
+    const content = document.getElementById('admin-main-content');
+    
+    const contentHTML = `
+        <div class="staff-management">
+            <div class="staff-actions">
+                <button class="btn-primary" onclick="showAddStaffModal()">
+                    <i class="fas fa-plus"></i> Personel Ekle
+                </button>
+                <button class="btn-secondary" onclick="showStaffSalaryModal()">
+                    <i class="fas fa-money-bill-wave"></i> Maaş Yönetimi
+                </button>
+                <button class="btn-info" onclick="showStaffAccountsModal()">
+                    <i class="fas fa-key"></i> Personel Hesapları
+                </button>
+                <button class="btn-success" onclick="showStaffAvailabilityModal()">
+                    <i class="fas fa-calendar-check"></i> Müsaitlik Yönetimi
+                </button>
+                <button class="btn-warning" onclick="showStaffAppointmentsModal()">
+                    <i class="fas fa-calendar-alt"></i> Atanan Randevular
+                </button>
+            </div>
+            <div id="staff-list"></div>
+        </div>
+    `;
+    
+    content.innerHTML = contentHTML;
+    loadStaffList();
+}
+
+// Load customers content
+function loadCustomersContent() {
+    const content = document.getElementById('admin-main-content');
+    
+    const contentHTML = `
+        <div class="customers-management">
+            <div class="customer-actions">
+                <button class="btn-primary" onclick="sendBulkWhatsAppMessage()">
+                    <i class="fab fa-whatsapp"></i> Toplu Mesaj
+                </button>
+            </div>
+            <div id="customers-list"></div>
+        </div>
+    `;
+    
+    content.innerHTML = contentHTML;
+    loadCustomersList();
+}
+
+// Load settings content
+function loadSettingsContent() {
+    const content = document.getElementById('admin-main-content');
+    
+    const contentHTML = `
+        <div class="settings-management">
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label>Otomatik Onay</label>
+                    <input type="checkbox" id="auto-confirm-setting" onchange="updateSetting('autoConfirm', this.checked)">
+                </div>
+                <div class="setting-item">
+                    <label>WhatsApp Hatırlatma</label>
+                    <input type="checkbox" id="whatsapp-reminder-setting" onchange="updateSetting('whatsappReminder', this.checked)">
+                </div>
+                <div class="setting-item">
+                    <label>Hatırlatma Saati (saat öncesi)</label>
+                    <input type="number" id="reminder-hours-setting" onchange="updateSetting('reminderHours', this.value)" min="1" max="24">
+                </div>
+            </div>
+        </div>
+    `;
+    
+    content.innerHTML = contentHTML;
+    loadSettings();
+}
+
+// Load phone appointments content
+function loadPhoneAppointmentsContent() {
+    const content = document.getElementById('admin-main-content');
+    
+    const contentHTML = `
+        <div class="phone-appointments-management">
+            <h3>Telefon Randevu Yönetimi</h3>
+            <p>Telefon ile alınan randevular burada görüntülenir.</p>
+            <div class="phone-appointments-list">
+                <!-- Phone appointments will be loaded here -->
+            </div>
+        </div>
+    `;
+    
+    content.innerHTML = contentHTML;
+}
+
+// Go to home page function
+function goToHomePage() {
+    logout();
+}
+
+// Personel Müsaitlik Yönetimi
+function showStaffAvailabilityModal() {
+    const modalHTML = `
+        <div class="staff-availability-management">
+            <h3>Personel Müsaitlik Yönetimi</h3>
+            <div class="availability-list">
+                ${staff.map(member => {
+                    const availability = staffAvailability.find(a => a.staffId === member.id) || { 
+                        workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+                        workingHours: { start: '09:00', end: '18:00' },
+                        offDays: [],
+                        isActive: true
+                    };
+                    return `
+                        <div class="availability-item">
+                            <div class="staff-info">
+                                <div class="staff-avatar">${member.avatar}</div>
+                                <div>
+                                    <h4>${member.name}</h4>
+                                    <p>${member.specialty}</p>
+                                </div>
+                            </div>
+                            <div class="availability-form">
+                                <div class="form-group">
+                                    <label>Çalışma Durumu</label>
+                                    <select onchange="updateStaffAvailability(${member.id}, 'isActive', this.value)">
+                                        <option value="true" ${availability.isActive ? 'selected' : ''}>Aktif</option>
+                                        <option value="false" ${!availability.isActive ? 'selected' : ''}>Pasif</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Çalışma Günleri</label>
+                                    <div class="days-selector">
+                                        ${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => `
+                                            <label class="day-checkbox">
+                                                <input type="checkbox" 
+                                                       value="${day}" 
+                                                       ${availability.workingDays.includes(day) ? 'checked' : ''}
+                                                       onchange="updateWorkingDays(${member.id}, '${day}', this.checked)">
+                                                <span>${getDayName(day)}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Çalışma Saatleri</label>
+                                    <div class="time-inputs">
+                                        <input type="time" value="${availability.workingHours.start}" 
+                                               onchange="updateWorkingHours(${member.id}, 'start', this.value)">
+                                        <span>-</span>
+                                        <input type="time" value="${availability.workingHours.end}" 
+                                               onchange="updateWorkingHours(${member.id}, 'end', this.value)">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>İzin Günleri</label>
+                                    <div class="off-days">
+                                        <input type="date" id="off-day-${member.id}" class="off-day-input">
+                                        <button class="btn-sm btn-primary" onclick="addOffDay(${member.id})">
+                                            <i class="fas fa-plus"></i> İzin Ekle
+                                        </button>
+                                    </div>
+                                    <div class="off-days-list">
+                                        ${availability.offDays.map(day => `
+                                            <span class="off-day-tag">
+                                                ${formatDate(day)}
+                                                <button onclick="removeOffDay(${member.id}, '${day}')">×</button>
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'staffAvailabilityModal';
+    modal.innerHTML = `
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('staffAvailabilityModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// Personel Atanan Randevular
+function showStaffAppointmentsModal() {
+    const modalHTML = `
+        <div class="staff-appointments-management">
+            <h3>Personel Atanan Randevular</h3>
+            <div class="appointments-actions">
+                <button class="btn-primary" onclick="showManualAppointmentModal()">
+                    <i class="fas fa-plus"></i> Manuel Randevu Oluştur
+                </button>
+            </div>
+            <div class="staff-appointments-list">
+                ${staff.map(member => {
+                    const memberAppointments = appointments.filter(apt => apt.staffId === member.id);
+                    return `
+                        <div class="staff-appointment-group">
+                            <h4>${member.name} - ${memberAppointments.length} Randevu</h4>
+                            <div class="appointments-grid">
+                                ${memberAppointments.map(appointment => `
+                                    <div class="appointment-card" onclick="showAppointmentDetails(${appointment.id})">
+                                        <div class="appointment-header">
+                                            <h5>${appointment.name}</h5>
+                                            <span class="status-badge ${appointment.status}">${getStatusText(appointment.status)}</span>
+                                        </div>
+                                        <div class="appointment-details">
+                                            <p><i class="fas fa-calendar"></i> ${formatDate(appointment.date)}</p>
+                                            <p><i class="fas fa-clock"></i> ${appointment.time}</p>
+                                            <p><i class="fas fa-spa"></i> ${appointment.serviceName}</p>
+                                            <p><i class="fas fa-phone"></i> ${appointment.phone}</p>
+                                        </div>
+                                        <div class="appointment-actions">
+                                            ${appointment.status === 'pending' ? `
+                                                <button class="btn-warning" onclick="cancelAppointment(${appointment.id})">
+                                                    <i class="fas fa-times"></i> İptal Et
+                                                </button>
+                                            ` : ''}
+                                            ${appointment.status === 'confirmed' ? `
+                                                <button class="btn-success" onclick="showInvoiceModal(${appointment.id})">
+                                                    <i class="fas fa-receipt"></i> Adisyon Aç
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'staffAppointmentsModal';
+    modal.innerHTML = `
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('staffAppointmentsModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// Manuel Randevu Oluşturma
+function showManualAppointmentModal() {
+    const modalHTML = `
+        <div class="manual-appointment-form">
+            <h3>Manuel Randevu Oluştur</h3>
+            <form id="manualAppointmentForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="manualCustomerName">Müşteri Adı</label>
+                        <input type="text" id="manualCustomerName" name="customerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="manualCustomerPhone">Telefon</label>
+                        <input type="tel" id="manualCustomerPhone" name="customerPhone" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="manualStaff">Personel</label>
+                        <select id="manualStaff" name="staffId" required>
+                            <option value="">Personel Seçin</option>
+                            ${staff.map(member => `
+                                <option value="${member.id}">${member.name} - ${member.specialty}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="manualService">Hizmet</label>
+                        <select id="manualService" name="serviceName" required>
+                            <option value="">Hizmet Seçin</option>
+                            ${Object.values(serviceCategories).flatMap(category => 
+                                category.subcategories.map(sub => `
+                                    <option value="${sub.name}" data-price="${sub.price}">${sub.name} - ${sub.price}₺</option>
+                                `)
+                            ).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="manualDate">Tarih</label>
+                        <input type="date" id="manualDate" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="manualTime">Saat</label>
+                        <input type="time" id="manualTime" name="time" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="manualNotes">Notlar</label>
+                    <textarea id="manualNotes" name="notes" rows="3" placeholder="Randevu notları..."></textarea>
+                </div>
+                <button type="submit" class="btn-submit">Randevu Oluştur</button>
+            </form>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'manualAppointmentModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('manualAppointmentModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    // Set today's date as default
+    document.getElementById('manualDate').value = new Date().toISOString().split('T')[0];
+    
+    document.getElementById('manualAppointmentForm').addEventListener('submit', handleManualAppointmentSubmit);
+}
+
+// Adisyon Modal
+function showInvoiceModal(appointmentId) {
+    const appointment = appointments.find(apt => apt.id === appointmentId);
+    if (!appointment) return;
+    
+    const modalHTML = `
+        <div class="invoice-form">
+            <h3>Adisyon - ${appointment.name}</h3>
+            <div class="invoice-details">
+                <div class="customer-info">
+                    <h4>Müşteri Bilgileri</h4>
+                    <p><strong>Ad:</strong> ${appointment.name}</p>
+                    <p><strong>Telefon:</strong> ${appointment.phone}</p>
+                    <p><strong>Hizmet:</strong> ${appointment.serviceName}</p>
+                    <p><strong>Tarih:</strong> ${formatDate(appointment.date)} ${appointment.time}</p>
+                </div>
+                
+                <div class="invoice-items">
+                    <h4>Hizmetler</h4>
+                    <div class="invoice-item">
+                        <span class="item-name">${appointment.serviceName}</span>
+                        <span class="item-price">${appointment.servicePrice || 0}₺</span>
+                    </div>
+                    
+                    <div id="additional-services">
+                        <!-- Ek hizmetler buraya eklenecek -->
+                    </div>
+                    
+                    <div class="add-service">
+                        <select id="additionalServiceSelect">
+                            <option value="">Ek Hizmet Seçin</option>
+                            ${Object.values(serviceCategories).flatMap(category => 
+                                category.subcategories.map(sub => `
+                                    <option value="${sub.name}" data-price="${sub.price}">${sub.name} - ${sub.price}₺</option>
+                                `)
+                            ).join('')}
+                        </select>
+                        <button type="button" onclick="addAdditionalService()" class="btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> Ekle
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="invoice-total">
+                    <div class="total-row">
+                        <span>Ara Toplam:</span>
+                        <span id="subtotal">${appointment.servicePrice || 0}₺</span>
+                    </div>
+                    <div class="total-row">
+                        <span>KDV (%18):</span>
+                        <span id="tax">0₺</span>
+                    </div>
+                    <div class="total-row total">
+                        <span>Toplam:</span>
+                        <span id="total">${appointment.servicePrice || 0}₺</span>
+                    </div>
+                </div>
+                
+                <div class="payment-section">
+                    <h4>Ödeme</h4>
+                    <div class="payment-methods">
+                        <label class="payment-method">
+                            <input type="radio" name="paymentMethod" value="cash" checked>
+                            <span>Nakit</span>
+                        </label>
+                        <label class="payment-method">
+                            <input type="radio" name="paymentMethod" value="card">
+                            <span>Kart</span>
+                        </label>
+                        <label class="payment-method">
+                            <input type="radio" name="paymentMethod" value="transfer">
+                            <span>Havale</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="invoice-actions">
+                    <button class="btn-success" onclick="completeAppointment(${appointmentId})">
+                        <i class="fas fa-check"></i> Randevuyu Tamamla
+                    </button>
+                    <button class="btn-secondary" onclick="closeModal('invoiceModal')">
+                        <i class="fas fa-times"></i> İptal
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'invoiceModal';
+    modal.innerHTML = `
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('invoiceModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
 }
 
 // Show regular view (hide admin panel, show regular sections)
@@ -1519,13 +2164,33 @@ function loadServicesList() {
         const category = serviceCategories[categoryKey];
         servicesHTML += `
             <div class="service-category-item">
-                <h4>${category.name}</h4>
+                <div class="service-category-header">
+                    <h4>${category.name}</h4>
+                    <div class="service-category-actions">
+                        <button class="btn-sm btn-primary" onclick="editServiceCategory('${categoryKey}')">
+                            <i class="fas fa-edit"></i> Düzenle
+                        </button>
+                        <button class="btn-sm btn-danger" onclick="deleteServiceCategory('${categoryKey}')">
+                            <i class="fas fa-trash"></i> Sil
+                        </button>
+                    </div>
+                </div>
                 <div class="subcategory-list">
                     ${category.subcategories.map(sub => `
                         <div class="subcategory-item">
-                            <span>${sub.name}</span>
-                            <span>${sub.duration} dk</span>
-                            <span>${sub.price}₺</span>
+                            <div class="subcategory-info">
+                                <span class="subcategory-name">${sub.name}</span>
+                                <span class="subcategory-duration">${sub.duration} dk</span>
+                                <span class="subcategory-price">${sub.price}₺</span>
+                            </div>
+                            <div class="subcategory-actions">
+                                <button class="btn-sm btn-secondary" onclick="editSubcategory('${categoryKey}', '${sub.value}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-sm btn-danger" onclick="deleteSubcategory('${categoryKey}', '${sub.value}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
@@ -2591,6 +3256,622 @@ function loadStaffForService() {
     }
 }
 
+// Hizmet Yönetimi Fonksiyonları
+function showAddServiceModal() {
+    const modalHTML = `
+        <div class="service-form">
+            <h3>Yeni Hizmet Kategorisi Ekle</h3>
+            <form id="addServiceForm">
+                <div class="form-group">
+                    <label for="serviceCategoryName">Kategori Adı</label>
+                    <input type="text" id="serviceCategoryName" name="categoryName" required placeholder="Örn: Cilt Bakımları">
+                </div>
+                <div class="form-group">
+                    <label for="serviceCategoryIcon">İkon (FontAwesome class)</label>
+                    <input type="text" id="serviceCategoryIcon" name="categoryIcon" required placeholder="fas fa-leaf">
+                </div>
+                <div class="form-group">
+                    <label for="serviceCategoryKey">Kategori Anahtarı</label>
+                    <input type="text" id="serviceCategoryKey" name="categoryKey" required placeholder="cilt-bakimlari">
+                </div>
+                <button type="submit" class="btn-submit">Kategori Ekle</button>
+            </form>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'addServiceModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addServiceModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    document.getElementById('addServiceForm').addEventListener('submit', handleAddServiceSubmit);
+}
+
+function showEditServiceModal() {
+    const modalHTML = `
+        <div class="service-edit-form">
+            <h3>Hizmet Düzenle</h3>
+            <div class="service-categories-list">
+                ${Object.keys(serviceCategories).map(categoryKey => {
+                    const category = serviceCategories[categoryKey];
+                    return `
+                        <div class="edit-category-item">
+                            <h4>${category.name}</h4>
+                            <div class="category-actions">
+                                <button class="btn-sm btn-primary" onclick="editCategoryDetails('${categoryKey}')">
+                                    <i class="fas fa-edit"></i> Düzenle
+                                </button>
+                                <button class="btn-sm btn-success" onclick="addSubcategory('${categoryKey}')">
+                                    <i class="fas fa-plus"></i> Alt Hizmet Ekle
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'editServiceModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editServiceModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// Personel Maaş Yönetimi
+function showStaffSalaryModal() {
+    const modalHTML = `
+        <div class="salary-management">
+            <h3>Personel Maaş Yönetimi</h3>
+            <div class="salary-list">
+                ${staff.map(member => {
+                    const salary = staffSalaries.find(s => s.staffId === member.id) || { type: 'monthly', amount: 0, commission: 0 };
+                    return `
+                        <div class="salary-item">
+                            <div class="staff-info">
+                                <div class="staff-avatar">${member.avatar}</div>
+                                <div>
+                                    <h4>${member.name}</h4>
+                                    <p>${member.specialty}</p>
+                                </div>
+                            </div>
+                            <div class="salary-form">
+                                <div class="form-group">
+                                    <label>Maaş Türü</label>
+                                    <select onchange="updateSalaryType(${member.id}, this.value)">
+                                        <option value="monthly" ${salary.type === 'monthly' ? 'selected' : ''}>Aylık Maaş</option>
+                                        <option value="commission" ${salary.type === 'commission' ? 'selected' : ''}>Komisyon</option>
+                                        <option value="hybrid" ${salary.type === 'hybrid' ? 'selected' : ''}>Aylık + Komisyon</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Aylık Maaş (₺)</label>
+                                    <input type="number" value="${salary.amount}" onchange="updateSalaryAmount(${member.id}, this.value)" min="0">
+                                </div>
+                                <div class="form-group" style="display: ${salary.type === 'commission' || salary.type === 'hybrid' ? 'block' : 'none'}">
+                                    <label>Komisyon (%)</label>
+                                    <input type="number" value="${salary.commission}" onchange="updateSalaryCommission(${member.id}, this.value)" min="0" max="100">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'staffSalaryModal';
+    modal.innerHTML = `
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('staffSalaryModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// Personel Hesapları
+function showStaffAccountsModal() {
+    const modalHTML = `
+        <div class="staff-accounts">
+            <h3>Personel Hesapları</h3>
+            <div class="accounts-list">
+                ${staff.map(member => {
+                    const account = staffAccounts.find(a => a.staffId === member.id);
+                    return `
+                        <div class="account-item">
+                            <div class="staff-info">
+                                <div class="staff-avatar">${member.avatar}</div>
+                                <div>
+                                    <h4>${member.name}</h4>
+                                    <p>${member.specialty}</p>
+                                </div>
+                            </div>
+                            <div class="account-details">
+                                ${account ? `
+                                    <div class="account-info">
+                                        <p><strong>Kullanıcı Adı:</strong> ${account.username}</p>
+                                        <p><strong>Şifre:</strong> ${account.password}</p>
+                                        <p><strong>Oluşturulma:</strong> ${new Date(account.createdAt).toLocaleDateString('tr-TR')}</p>
+                                    </div>
+                                    <div class="account-actions">
+                                        <button class="btn-sm btn-warning" onclick="regeneratePassword(${member.id})">
+                                            <i class="fas fa-key"></i> Şifre Yenile
+                                        </button>
+                                        <button class="btn-sm btn-danger" onclick="deleteStaffAccount(${member.id})">
+                                            <i class="fas fa-trash"></i> Hesap Sil
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <div class="no-account">
+                                        <p>Henüz hesap oluşturulmamış</p>
+                                        <button class="btn-sm btn-primary" onclick="createStaffAccount(${member.id})">
+                                            <i class="fas fa-plus"></i> Hesap Oluştur
+                                        </button>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'staffAccountsModal';
+    modal.innerHTML = `
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('staffAccountsModal')">&times;</span>
+            ${modalHTML}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// Maaş güncelleme fonksiyonları
+function updateSalaryType(staffId, type) {
+    let salary = staffSalaries.find(s => s.staffId === staffId);
+    if (!salary) {
+        salary = { staffId, type, amount: 0, commission: 0 };
+        staffSalaries.push(salary);
+    } else {
+        salary.type = type;
+    }
+    
+    // Komisyon alanını göster/gizle
+    const commissionField = event.target.closest('.salary-item').querySelector('.form-group:last-child');
+    if (type === 'commission' || type === 'hybrid') {
+        commissionField.style.display = 'block';
+    } else {
+        commissionField.style.display = 'none';
+    }
+    
+    saveStaffSalaries();
+    updateMonthlyExpenses();
+}
+
+function updateSalaryAmount(staffId, amount) {
+    let salary = staffSalaries.find(s => s.staffId === staffId);
+    if (!salary) {
+        salary = { staffId, type: 'monthly', amount: 0, commission: 0 };
+        staffSalaries.push(salary);
+    }
+    salary.amount = parseFloat(amount) || 0;
+    saveStaffSalaries();
+    updateMonthlyExpenses();
+}
+
+function updateSalaryCommission(staffId, commission) {
+    let salary = staffSalaries.find(s => s.staffId === staffId);
+    if (!salary) {
+        salary = { staffId, type: 'commission', amount: 0, commission: 0 };
+        staffSalaries.push(salary);
+    }
+    salary.commission = parseFloat(commission) || 0;
+    saveStaffSalaries();
+    updateMonthlyExpenses();
+}
+
+// Personel hesap oluşturma
+function createStaffAccount(staffId) {
+    const member = staff.find(s => s.id === staffId);
+    if (!member) return;
+    
+    const username = generateUsername(member.name);
+    const password = generatePassword();
+    
+    const account = {
+        staffId,
+        username,
+        password,
+        createdAt: new Date().toISOString(),
+        isActive: true
+    };
+    
+    staffAccounts.push(account);
+    saveStaffAccounts();
+    
+    // Kullanıcıyı users array'ine ekle
+    const user = {
+        id: Date.now(),
+        firstName: member.name.split(' ')[0],
+        lastName: member.name.split(' ').slice(1).join(' '),
+        name: member.name,
+        email: `${username}@salon.com`,
+        phone: '+905000000000',
+        password: password,
+        role: 'staff',
+        staffId: staffId,
+        createdAt: new Date().toISOString()
+    };
+    
+    users.push(user);
+    saveToFirebase('users', users);
+    
+    showSuccessMessage(`${member.name} için hesap oluşturuldu!`);
+    showStaffAccountsModal();
+}
+
+function generateUsername(name) {
+    const cleanName = name.toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .substring(0, 8);
+    const randomNum = Math.floor(Math.random() * 1000);
+    return `${cleanName}${randomNum}`;
+}
+
+function generatePassword() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let password = '';
+    for (let i = 0; i < 8; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+}
+
+// Aylık giderleri güncelle
+function updateMonthlyExpenses() {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    // Eski maaş giderlerini sil
+    expenses = expenses.filter(expense => expense.category !== 'maas');
+    
+    // Yeni maaş giderlerini ekle
+    staffSalaries.forEach(salary => {
+        const member = staff.find(s => s.id === salary.staffId);
+        if (!member) return;
+        
+        let monthlyAmount = 0;
+        if (salary.type === 'monthly') {
+            monthlyAmount = salary.amount;
+        } else if (salary.type === 'commission') {
+            // Komisyon için varsayılan bir tutar (aylık gelirin %'si)
+            monthlyAmount = 0; // Komisyon sadece işlem yapıldığında hesaplanır
+        } else if (salary.type === 'hybrid') {
+            monthlyAmount = salary.amount;
+        }
+        
+        if (monthlyAmount > 0) {
+            const expense = {
+                id: Date.now() + Math.random(),
+                description: `${member.name} - Aylık Maaş`,
+                amount: monthlyAmount,
+                date: new Date().toISOString().split('T')[0],
+                category: 'maas',
+                staffId: salary.staffId,
+                createdAt: new Date().toISOString()
+            };
+            expenses.push(expense);
+        }
+    });
+    
+    saveToFirebase('expenses', expenses);
+    loadRevenueData();
+}
+
+// Veri kaydetme fonksiyonları
+function saveStaffSalaries() {
+    localStorage.setItem('staffSalaries', JSON.stringify(staffSalaries));
+    saveToFirebase('staffSalaries', staffSalaries);
+}
+
+function saveStaffAccounts() {
+    localStorage.setItem('staffAccounts', JSON.stringify(staffAccounts));
+    saveToFirebase('staffAccounts', staffAccounts);
+}
+
+function saveStaffAvailability() {
+    localStorage.setItem('staffAvailability', JSON.stringify(staffAvailability));
+    saveToFirebase('staffAvailability', staffAvailability);
+}
+
+function saveInvoices() {
+    localStorage.setItem('invoices', JSON.stringify(invoices));
+    saveToFirebase('invoices', invoices);
+}
+
+// Müsaitlik yönetimi fonksiyonları
+function updateStaffAvailability(staffId, field, value) {
+    let availability = staffAvailability.find(a => a.staffId === staffId);
+    if (!availability) {
+        availability = { 
+            staffId, 
+            workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+            workingHours: { start: '09:00', end: '18:00' },
+            offDays: [],
+            isActive: true
+        };
+        staffAvailability.push(availability);
+    }
+    
+    if (field === 'isActive') {
+        availability.isActive = value === 'true';
+    }
+    
+    saveStaffAvailability();
+}
+
+function updateWorkingDays(staffId, day, isChecked) {
+    let availability = staffAvailability.find(a => a.staffId === staffId);
+    if (!availability) {
+        availability = { 
+            staffId, 
+            workingDays: [],
+            workingHours: { start: '09:00', end: '18:00' },
+            offDays: [],
+            isActive: true
+        };
+        staffAvailability.push(availability);
+    }
+    
+    if (isChecked) {
+        if (!availability.workingDays.includes(day)) {
+            availability.workingDays.push(day);
+        }
+    } else {
+        availability.workingDays = availability.workingDays.filter(d => d !== day);
+    }
+    
+    saveStaffAvailability();
+}
+
+function updateWorkingHours(staffId, type, time) {
+    let availability = staffAvailability.find(a => a.staffId === staffId);
+    if (!availability) {
+        availability = { 
+            staffId, 
+            workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+            workingHours: { start: '09:00', end: '18:00' },
+            offDays: [],
+            isActive: true
+        };
+        staffAvailability.push(availability);
+    }
+    
+    availability.workingHours[type] = time;
+    saveStaffAvailability();
+}
+
+function addOffDay(staffId) {
+    const input = document.getElementById(`off-day-${staffId}`);
+    const date = input.value;
+    if (!date) return;
+    
+    let availability = staffAvailability.find(a => a.staffId === staffId);
+    if (!availability) {
+        availability = { 
+            staffId, 
+            workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+            workingHours: { start: '09:00', end: '18:00' },
+            offDays: [],
+            isActive: true
+        };
+        staffAvailability.push(availability);
+    }
+    
+    if (!availability.offDays.includes(date)) {
+        availability.offDays.push(date);
+        saveStaffAvailability();
+        showStaffAvailabilityModal(); // Refresh modal
+    }
+    
+    input.value = '';
+}
+
+function removeOffDay(staffId, date) {
+    let availability = staffAvailability.find(a => a.staffId === staffId);
+    if (availability) {
+        availability.offDays = availability.offDays.filter(d => d !== date);
+        saveStaffAvailability();
+        showStaffAvailabilityModal(); // Refresh modal
+    }
+}
+
+function getDayName(day) {
+    const days = {
+        'monday': 'Pazartesi',
+        'tuesday': 'Salı',
+        'wednesday': 'Çarşamba',
+        'thursday': 'Perşembe',
+        'friday': 'Cuma',
+        'saturday': 'Cumartesi',
+        'sunday': 'Pazar'
+    };
+    return days[day] || day;
+}
+
+// Manuel randevu oluşturma
+function handleManualAppointmentSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const appointment = {
+        id: Date.now(),
+        name: formData.get('customerName'),
+        phone: formData.get('customerPhone'),
+        email: '',
+        serviceName: formData.get('serviceName'),
+        servicePrice: getServicePrice(formData.get('serviceName')),
+        date: formData.get('date'),
+        time: formData.get('time'),
+        staffId: parseInt(formData.get('staffId')),
+        status: 'confirmed',
+        notes: formData.get('notes') || '',
+        createdAt: new Date().toISOString(),
+        isManual: true
+    };
+    
+    appointments.push(appointment);
+    saveToFirebase('appointments', appointments);
+    
+    showSuccessMessage('Manuel randevu başarıyla oluşturuldu!');
+    closeModal('manualAppointmentModal');
+    showStaffAppointmentsModal(); // Refresh modal
+}
+
+function getServicePrice(serviceName) {
+    for (const category of Object.values(serviceCategories)) {
+        for (const sub of category.subcategories) {
+            if (sub.name === serviceName) {
+                return sub.price;
+            }
+        }
+    }
+    return 0;
+}
+
+// Randevu iptal etme
+function cancelAppointment(appointmentId) {
+    if (confirm('Bu randevuyu iptal etmek istediğinizden emin misiniz?')) {
+        const appointment = appointments.find(apt => apt.id === appointmentId);
+        if (appointment) {
+            appointment.status = 'cancelled';
+            saveToFirebase('appointments', appointments);
+            showSuccessMessage('Randevu iptal edildi!');
+            showStaffAppointmentsModal(); // Refresh modal
+        }
+    }
+}
+
+// Ek hizmet ekleme
+function addAdditionalService() {
+    const select = document.getElementById('additionalServiceSelect');
+    const serviceName = select.value;
+    const servicePrice = select.selectedOptions[0].dataset.price;
+    
+    if (!serviceName) return;
+    
+    const additionalServices = document.getElementById('additional-services');
+    const serviceItem = document.createElement('div');
+    serviceItem.className = 'invoice-item additional-service';
+    serviceItem.innerHTML = `
+        <span class="item-name">${serviceName}</span>
+        <span class="item-price">${servicePrice}₺</span>
+        <button onclick="removeAdditionalService(this)" class="btn-remove">×</button>
+    `;
+    
+    additionalServices.appendChild(serviceItem);
+    select.value = '';
+    updateInvoiceTotal();
+}
+
+function removeAdditionalService(button) {
+    button.parentElement.remove();
+    updateInvoiceTotal();
+}
+
+function updateInvoiceTotal() {
+    const basePrice = parseFloat(document.querySelector('.invoice-item:first-child .item-price').textContent) || 0;
+    const additionalPrices = Array.from(document.querySelectorAll('.additional-service .item-price'))
+        .map(el => parseFloat(el.textContent))
+        .reduce((sum, price) => sum + price, 0);
+    
+    const subtotal = basePrice + additionalPrices;
+    const tax = subtotal * 0.18;
+    const total = subtotal + tax;
+    
+    document.getElementById('subtotal').textContent = subtotal.toFixed(2) + '₺';
+    document.getElementById('tax').textContent = tax.toFixed(2) + '₺';
+    document.getElementById('total').textContent = total.toFixed(2) + '₺';
+}
+
+// Randevuyu tamamlama
+function completeAppointment(appointmentId) {
+    const appointment = appointments.find(apt => apt.id === appointmentId);
+    if (!appointment) return;
+    
+    // Get payment method
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    
+    // Calculate total
+    const basePrice = parseFloat(document.querySelector('.invoice-item:first-child .item-price').textContent) || 0;
+    const additionalPrices = Array.from(document.querySelectorAll('.additional-service .item-price'))
+        .map(el => parseFloat(el.textContent))
+        .reduce((sum, price) => sum + price, 0);
+    
+    const subtotal = basePrice + additionalPrices;
+    const tax = subtotal * 0.18;
+    const total = subtotal + tax;
+    
+    // Create invoice
+    const invoice = {
+        id: Date.now(),
+        appointmentId: appointmentId,
+        customerName: appointment.name,
+        customerPhone: appointment.phone,
+        baseService: appointment.serviceName,
+        basePrice: basePrice,
+        additionalServices: Array.from(document.querySelectorAll('.additional-service')).map(item => ({
+            name: item.querySelector('.item-name').textContent,
+            price: parseFloat(item.querySelector('.item-price').textContent)
+        })),
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
+        paymentMethod: paymentMethod,
+        createdAt: new Date().toISOString(),
+        status: 'completed'
+    };
+    
+    invoices.push(invoice);
+    saveInvoices();
+    
+    // Update appointment status
+    appointment.status = 'completed';
+    appointment.totalAmount = total;
+    appointment.paymentMethod = paymentMethod;
+    saveToFirebase('appointments', appointments);
+    
+    showSuccessMessage('Randevu başarıyla tamamlandı!');
+    closeModal('invoiceModal');
+    showStaffAppointmentsModal(); // Refresh modal
+}
+
 // Export functions for global access
 window.showLoginModal = showLoginModal;
 window.showRegisterModal = showRegisterModal;
@@ -2609,3 +3890,27 @@ window.closeMobileMenu = closeMobileMenu;
 window.selectCustomer = selectCustomer;
 window.nextStep = nextStep;
 window.prevStep = prevStep;
+window.showAddServiceModal = showAddServiceModal;
+window.showEditServiceModal = showEditServiceModal;
+window.showStaffSalaryModal = showStaffSalaryModal;
+window.showStaffAccountsModal = showStaffAccountsModal;
+window.updateSalaryType = updateSalaryType;
+window.updateSalaryAmount = updateSalaryAmount;
+window.updateSalaryCommission = updateSalaryCommission;
+window.createStaffAccount = createStaffAccount;
+window.showAdminTab = showAdminTab;
+window.goToHomePage = goToHomePage;
+window.showStaffAvailabilityModal = showStaffAvailabilityModal;
+window.showStaffAppointmentsModal = showStaffAppointmentsModal;
+window.showManualAppointmentModal = showManualAppointmentModal;
+window.showInvoiceModal = showInvoiceModal;
+window.updateStaffAvailability = updateStaffAvailability;
+window.updateWorkingDays = updateWorkingDays;
+window.updateWorkingHours = updateWorkingHours;
+window.addOffDay = addOffDay;
+window.removeOffDay = removeOffDay;
+window.handleManualAppointmentSubmit = handleManualAppointmentSubmit;
+window.cancelAppointment = cancelAppointment;
+window.addAdditionalService = addAdditionalService;
+window.removeAdditionalService = removeAdditionalService;
+window.completeAppointment = completeAppointment;
