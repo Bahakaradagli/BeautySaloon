@@ -454,7 +454,7 @@
             <form id="loginForm">
                 <div class="form-group">
                     <label for="loginEmail">E-posta</label>
-                    <input type="email" id="loginEmail" name="email" required>
+                    <input type="text" id="loginEmail" name="email" required>
                 </div>
                 <div class="form-group">
                     <label for="loginPassword">Şifre</label>
@@ -505,6 +505,16 @@
         </div>
     </div>
 
+    <!-- My Appointments Modal -->
+    <div id="myAppointmentsModal" class="modal">
+        <div class="modal-content my-appointments-modal">
+            <span class="close" onclick="closeModal('myAppointmentsModal')">&times;</span>
+            <h2><i class="fas fa-calendar-alt"></i> Randevularım</h2>
+            <div id="my-appointments-content">
+                <!-- Appointments will be loaded here -->
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

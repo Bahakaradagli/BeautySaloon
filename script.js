@@ -545,6 +545,12 @@ async function handleLogin(e) {
     
     console.log('Giriş denemesi:', { email, password });
     
+    // Validate email format (allowing Turkish characters)
+    if (!isValidEmail(email)) {
+        showErrorMessage('Geçerli bir e-posta adresi girin!');
+        return;
+    }
+    
     // Check for specific admin credentials
     if (email === 'admingülcemal@gmail.com' && password === '123456789') {
         currentUser = {
@@ -676,6 +682,13 @@ function validateTurkishPhone(phone) {
     return false;
 }
 
+// Validate email format (supporting Turkish characters)
+function isValidEmail(email) {
+    // Email regex that supports Turkish characters (ü, ğ, ş, ı, ö, ç)
+    const emailRegex = /^[a-zA-Z0-9üÜğĞşŞıİöÖçÇ._%+-]+@[a-zA-Z0-9üÜğĞşŞıİöÖçÇ.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+}
+
 // Format Turkish phone number as user types
 function formatTurkishPhone(input) {
     let value = input.value.replace(/\D/g, '');
@@ -731,6 +744,7 @@ function updateNavForLoggedInUser() {
     
     navActions.innerHTML = `
         <span class="user-info">Hoş geldin, ${currentUser.name}!</span>
+        <button class="btn-login" onclick="showMyAppointments()">Randevularım</button>
         ${isAdmin ? '<button class="btn-login" onclick="showAdminPanel()">Yönetim</button>' : ''}
         <button class="btn-register" onclick="logout()">Çıkış</button>
     `;
@@ -752,6 +766,135 @@ function logout() {
     
     location.reload();
 }
+
+// Show my appointments
+function showMyAppointments() {
+    if (!currentUser) return;
+    
+    document.getElementById('myAppointmentsModal').style.display = 'block';
+    loadMyAppointments();
+}
+
+// Load user's appointments
+function loadMyAppointments() {
+    const content = document.getElementById('my-appointments-content');
+    
+    // Filter appointments for current user
+    const userAppointments = appointments.filter(apt => 
+        apt.phone === currentUser.phone || 
+        (apt.name && apt.name.toLowerCase().includes(currentUser.name.toLowerCase()))
+    );
+    
+    if (userAppointments.length === 0) {
+        content.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <h3>Henüz randevunuz yok</h3>
+                <p>Yeni bir randevu oluşturmak için ana sayfadaki randevu formunu kullanabilirsiniz.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Sort appointments by date (newest first)
+    userAppointments.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    content.innerHTML = `
+        <div class="my-appointments-list">
+            ${userAppointments.map(appointment => `
+                <div class="appointment-card ${appointment.status}">
+                    <div class="appointment-header">
+                        <div class="appointment-info">
+                            <h4>${appointment.serviceName}</h4>
+                            <p class="appointment-date">
+                                <i class="fas fa-calendar"></i>
+                                ${formatDate(appointment.date)} - ${appointment.time}
+                            </p>
+                            <p class="appointment-staff">
+                                <i class="fas fa-user"></i>
+                                ${getStaffName(appointment.staff)}
+                            </p>
+                            <p class="appointment-price">
+                                <i class="fas fa-lira-sign"></i>
+                                ${appointment.servicePrice}₺
+                            </p>
+                        </div>
+                        <div class="appointment-status">
+                            <span class="status-badge ${appointment.status}">
+                                ${getStatusText(appointment.status)}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    ${appointment.notes ? `
+                        <div class="appointment-notes">
+                            <strong>Notlar:</strong> ${appointment.notes}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="appointment-actions">
+                        ${appointment.status === 'confirmed' || appointment.status === 'pending' ? `
+                            <button class="btn-cancel" onclick="cancelAppointment(${appointment.id})">
+                                <i class="fas fa-times"></i> İptal Et
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Get staff name by ID
+function getStaffName(staffId) {
+    const staffMember = staff.find(s => s.id === staffId);
+    return staffMember ? staffMember.name : 'Belirtilmemiş';
+}
+
+// Get status text in Turkish
+function getStatusText(status) {
+    const statusTexts = {
+        'pending': 'Beklemede',
+        'confirmed': 'Onaylandı',
+        'cancelled': 'İptal Edildi',
+        'completed': 'Tamamlandı'
+    };
+    return statusTexts[status] || status;
+}
+
+// Format date for display
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        weekday: 'long'
+    };
+    return date.toLocaleDateString('tr-TR', options);
+}
+
+// Cancel appointment
+async function cancelAppointment(appointmentId) {
+    if (!confirm('Bu randevuyu iptal etmek istediğinizden emin misiniz?')) {
+        return;
+    }
+    
+    const appointmentIndex = appointments.findIndex(apt => apt.id === appointmentId);
+    if (appointmentIndex !== -1) {
+        appointments[appointmentIndex].status = 'cancelled';
+        
+        // Save to localStorage (fallback)
+        localStorage.setItem('appointments', JSON.stringify(appointments));
+        
+        // Save to Firebase
+        await saveToFirebase('appointments', appointments);
+        
+        showSuccessMessage('Randevu başarıyla iptal edildi!');
+        loadMyAppointments();
+    }
+}
+
 
 // Show admin panel
 function showAdminPanel() {
@@ -2409,6 +2552,8 @@ window.deleteAppointment = deleteAppointment;
 window.sendWhatsAppMessage = sendWhatsAppMessage;
 window.showTab = showTab;
 window.showAdminPanel = showAdminPanel;
+window.showMyAppointments = showMyAppointments;
+window.cancelAppointment = cancelAppointment;
 window.logout = logout;
 window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
