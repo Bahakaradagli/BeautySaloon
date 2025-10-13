@@ -29,51 +29,69 @@ let remove = null;
 
 // Service categories and subcategories
 const serviceCategories = {
-    'epilasyon': {
-        name: 'Epilasyon',
-        icon: 'fas fa-cut',
+    'buz-lazer-epilasyon': {
+        name: 'Buz Başlıklı Lazer Epilasyon',
+        icon: 'fas fa-snowflake',
         subcategories: [
-            { value: 'tum-vucut', name: 'Tüm Vücut', duration: 60, price: 300 },
-            { value: 'kol', name: 'Kol', duration: 30, price: 150 },
-            { value: 'bacak', name: 'Bacak', duration: 45, price: 200 },
-            { value: 'kas', name: 'Kaş', duration: 15, price: 50 },
-            { value: 'bikini', name: 'Bikini', duration: 30, price: 100 }
+            { value: 'buz-lazer-epilasyon', name: 'Buz Başlıklı Lazer Epilasyon', duration: 60, price: 400 }
         ]
     },
-    'zayiflama': {
-        name: 'Zayıflama',
-        icon: 'fas fa-weight',
-        subcategories: [
-            { value: 'kavitasyon', name: 'Kavitasyon', duration: 60, price: 400 },
-            { value: 'lpg', name: 'LPG', duration: 45, price: 250 },
-            { value: 'mezoterapi', name: 'Mezoterapi', duration: 30, price: 300 }
-        ]
-    },
-    'cilt-bakimi': {
-        name: 'Cilt Bakımı',
+    'cilt-bakimlari': {
+        name: 'Cilt Bakımları',
         icon: 'fas fa-leaf',
         subcategories: [
-            { value: 'temizlik', name: 'Cilt Temizliği', duration: 60, price: 300 },
-            { value: 'peeling', name: 'Peeling', duration: 45, price: 200 },
-            { value: 'maske', name: 'Maske', duration: 30, price: 150 }
+            { value: 'hydrafacial', name: 'Hydrafacial Cilt Bakımı', duration: 60, price: 300 },
+            { value: 'medikal-cilt', name: 'Medikal Cilt Bakımı', duration: 45, price: 250 },
+            { value: 'karbon-peeling', name: 'Karbon Peeling', duration: 30, price: 200 },
+            { value: 'dermapen', name: 'Dermapen', duration: 45, price: 350 },
+            { value: 'leke-protokolu', name: 'Leke Protokolü', duration: 60, price: 400 },
+            { value: 'akne-protokolu', name: 'Akne Protokolü', duration: 60, price: 400 },
+            { value: 'ameliyatsiz-yuz-germe', name: 'Ameliyatsız Yüz Germe', duration: 90, price: 600 }
         ]
     },
-    'sac-bakimi': {
-        name: 'Saç Bakımı',
-        icon: 'fas fa-cut',
+    'el-ayak-bakimi': {
+        name: 'El Ayak Bakımı',
+        icon: 'fas fa-hand-paper',
         subcategories: [
-            { value: 'kesim', name: 'Saç Kesimi', duration: 30, price: 150 },
-            { value: 'boyama', name: 'Saç Boyama', duration: 120, price: 400 },
-            { value: 'bakim', name: 'Saç Bakımı', duration: 45, price: 200 }
+            { value: 'manikur', name: 'Manikür', duration: 45, price: 150 },
+            { value: 'pedikur', name: 'Pedikür', duration: 60, price: 200 },
+            { value: 'kalici-oje', name: 'Kalıcı Oje', duration: 90, price: 300 },
+            { value: 'ayak-detox', name: 'Ayak Detox', duration: 30, price: 100 }
         ]
     },
-    'makyaj': {
-        name: 'Makyaj',
+    'kalici-makyaj': {
+        name: 'Kalıcı Makyaj Uygulamaları',
         icon: 'fas fa-palette',
         subcategories: [
-            { value: 'gunluk', name: 'Günlük Makyaj', duration: 30, price: 100 },
-            { value: 'ozel', name: 'Özel Gün Makyajı', duration: 60, price: 250 },
-            { value: 'gelin', name: 'Gelin Makyajı', duration: 90, price: 500 }
+            { value: 'kalici-kas-kil', name: 'Kalıcı Kaş Kıl Tekniği', duration: 120, price: 500 },
+            { value: 'kalici-eyeliner', name: 'Kalıcı Eyeliner', duration: 90, price: 400 },
+            { value: 'kalici-dudak', name: 'Kalıcı Dudak Renklendirme', duration: 90, price: 450 },
+            { value: 'kirpik-lifting', name: 'Kirpik Lifting', duration: 60, price: 200 },
+            { value: 'kalici-kas-silme', name: 'Kalıcı Kaş Silme', duration: 60, price: 300 },
+            { value: 'renkli-dovme-silme', name: 'Renkli Dövme Silme', duration: 90, price: 400 },
+            { value: 'dovme-silme', name: 'Dövme Silme', duration: 90, price: 350 }
+        ]
+    },
+    'zayiflama-islemleri': {
+        name: 'Zayıflama İşlemleri',
+        icon: 'fas fa-weight',
+        subcategories: [
+            { value: 'ems-zayiflama', name: 'EMS Zayıflama', duration: 45, price: 350 },
+            { value: 'selulit-sikilasma', name: 'Selülit ve Sıkılaşma', duration: 60, price: 400 },
+            { value: 'soguk-lipoliz', name: 'Soğuk Lipoliz', duration: 90, price: 500 },
+            { value: 'kavitasyon', name: 'Kavitasyon', duration: 60, price: 400 },
+            { value: 'g5-masaji', name: 'G5 Masajı', duration: 45, price: 300 },
+            { value: 'lenf-drenaj', name: 'Lenf Drenaj', duration: 60, price: 250 },
+            { value: 'pasif-jimnastik', name: 'Pasif Jimnastik', duration: 45, price: 200 }
+        ]
+    },
+    'vucut-bakimlari': {
+        name: 'Vücut Bakımları',
+        icon: 'fas fa-spa',
+        subcategories: [
+            { value: 'agda', name: 'Ağda', duration: 30, price: 200 },
+            { value: 'kas-biyik', name: 'Kaş Bıyık', duration: 15, price: 100 },
+            { value: 'masaj', name: 'Masaj', duration: 60, price: 300 }
         ]
     }
 };
@@ -319,6 +337,33 @@ function setupEventListeners() {
     document.getElementById('date').addEventListener('change', handleDateChange);
     document.getElementById('phoneDate').addEventListener('change', handlePhoneDateChange);
     
+    // Turkish phone number formatting
+    document.getElementById('regPhone').addEventListener('input', function(e) {
+        formatTurkishPhone(e.target);
+    });
+    
+    // Password confirmation validation
+    document.getElementById('regConfirmPassword').addEventListener('input', function(e) {
+        const password = document.getElementById('regPassword').value;
+        const confirmPassword = e.target.value;
+        
+        if (confirmPassword && password !== confirmPassword) {
+            e.target.setCustomValidity('Şifreler eşleşmiyor');
+        } else {
+            e.target.setCustomValidity('');
+        }
+    });
+    
+    // Real-time password validation
+    document.getElementById('regPassword').addEventListener('input', function(e) {
+        const confirmPassword = document.getElementById('regConfirmPassword');
+        if (confirmPassword.value && e.target.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('Şifreler eşleşmiyor');
+        } else {
+            confirmPassword.setCustomValidity('');
+        }
+    });
+    
     // Smooth scrolling for navigation links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
@@ -338,7 +383,7 @@ function setupEventListeners() {
 }
 
 // Handle appointment form submission
-function handleAppointmentSubmit(e) {
+async function handleAppointmentSubmit(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
@@ -520,16 +565,47 @@ async function handleLogin(e) {
 }
 
 // Handle registration
-function handleRegister(e) {
+async function handleRegister(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
+    const firstName = formData.get('firstName').trim();
+    const lastName = formData.get('lastName').trim();
+    const email = formData.get('email').trim();
+    const phone = formData.get('phone').trim();
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirmPassword');
+    
+    // Validation
+    if (!firstName || !lastName) {
+        showErrorMessage('Ad ve soyad alanları zorunludur!');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        showErrorMessage('Şifreler eşleşmiyor!');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showErrorMessage('Şifre en az 6 karakter olmalıdır!');
+        return;
+    }
+    
+    // Validate Turkish phone number
+    if (!validateTurkishPhone(phone)) {
+        showErrorMessage('Geçerli bir Türk telefon numarası girin! (05XX XXX XX XX)');
+        return;
+    }
+    
     const user = {
         id: Date.now(),
-        name: formData.get('name'),
-        email: formData.get('email'),
-        phone: formData.get('phone'),
-        password: formData.get('password'),
+        firstName: firstName,
+        lastName: lastName,
+        name: `${firstName} ${lastName}`,
+        email: email,
+        phone: phone,
+        password: password,
         createdAt: new Date().toISOString()
     };
     
@@ -540,11 +616,55 @@ function handleRegister(e) {
         return;
     }
     
+    // Check if phone already exists
+    const existingPhone = users.find(u => u.phone === user.phone);
+    if (existingPhone) {
+        showErrorMessage('Bu telefon numarası zaten kayıtlı!');
+        return;
+    }
+    
     users.push(user);
-    localStorage.setItem('users', JSON.stringify(users));
+    await saveToFirebase('users', users);
     
     closeModal('registerModal');
     showSuccessMessage('Kayıt başarılı! Şimdi giriş yapabilirsiniz.');
+}
+
+// Validate Turkish phone number
+function validateTurkishPhone(phone) {
+    // Remove all non-digit characters
+    const cleanPhone = phone.replace(/\D/g, '');
+    
+    // Turkish mobile numbers start with 05 and are 11 digits total
+    const turkishMobileRegex = /^05[0-9]{9}$/;
+    
+    return turkishMobileRegex.test(cleanPhone);
+}
+
+// Format Turkish phone number as user types
+function formatTurkishPhone(input) {
+    let value = input.value.replace(/\D/g, '');
+    
+    // Limit to 11 digits (Turkish mobile number length)
+    if (value.length > 11) {
+        value = value.slice(0, 11);
+    }
+    
+    if (value.length > 0) {
+        if (value.length <= 3) {
+            value = value;
+        } else if (value.length <= 6) {
+            value = value.slice(0, 3) + ' ' + value.slice(3);
+        } else if (value.length <= 8) {
+            value = value.slice(0, 3) + ' ' + value.slice(3, 6) + ' ' + value.slice(6);
+        } else if (value.length <= 10) {
+            value = value.slice(0, 3) + ' ' + value.slice(3, 6) + ' ' + value.slice(6, 8) + ' ' + value.slice(8);
+        } else {
+            value = value.slice(0, 3) + ' ' + value.slice(3, 6) + ' ' + value.slice(6, 8) + ' ' + value.slice(8, 10);
+        }
+    }
+    
+    input.value = value;
 }
 
 // Update navigation for logged in user
