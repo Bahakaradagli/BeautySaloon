@@ -220,95 +220,168 @@
     <section id="appointment" class="appointment">
         <div class="container">
             <h2 class="section-title">Randevu Al</h2>
-            <div class="appointment-form">
+            <div class="appointment-wizard">
+                <!-- Progress Indicator -->
+                <div class="wizard-progress">
+                    <div class="progress-step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Bilgiler</div>
+                    </div>
+                    <div class="progress-step" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Personel</div>
+                    </div>
+                    <div class="progress-step" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Tarih</div>
+                    </div>
+                    <div class="progress-step" data-step="4">
+                        <div class="step-number">4</div>
+                        <div class="step-label">Saat</div>
+                    </div>
+                </div>
+
                 <form id="appointmentForm">
-                    <div class="form-row">
+                    <!-- Step 1: Personal Info and Service Selection -->
+                    <div class="wizard-step active" id="step-1">
+                        <h3 class="step-title">Kişisel Bilgiler ve Hizmet Seçimi</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="firstName">Ad</label>
+                                <input type="text" id="firstName" name="firstName" required placeholder="Adınızı girin">
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Soyad</label>
+                                <input type="text" id="lastName" name="lastName" required placeholder="Soyadınızı girin">
+                            </div>
+                        </div>
                         <div class="form-group">
-                            <label for="name">Ad Soyad</label>
-                            <input type="text" id="name" name="name" required autocomplete="off">
-                            <div id="customer-suggestions" class="suggestions"></div>
+                            <label for="phone">Telefon Numarası</label>
+                            <input type="tel" id="phone" name="phone" required placeholder="05XX XXX XX XX">
                         </div>
+                        
                         <div class="form-group">
-                            <label for="phone">Telefon</label>
-                            <input type="tel" id="phone" name="phone" required>
+                            <label>Hizmet Kategorisi</label>
+                            <div class="service-category-cards" id="service-category-cards">
+                                <div class="service-category-card" data-category="buz-lazer-epilasyon">
+                                    <i class="fas fa-snowflake"></i>
+                                    <h4>Buz Başlıklı Lazer Epilasyon</h4>
+                                </div>
+                                <div class="service-category-card" data-category="cilt-bakimlari">
+                                    <i class="fas fa-leaf"></i>
+                                    <h4>Cilt Bakımları</h4>
+                                </div>
+                                <div class="service-category-card" data-category="el-ayak-bakimi">
+                                    <i class="fas fa-hand-paper"></i>
+                                    <h4>El Ayak Bakımı</h4>
+                                </div>
+                                <div class="service-category-card" data-category="kalici-makyaj">
+                                    <i class="fas fa-palette"></i>
+                                    <h4>Kalıcı Makyaj</h4>
+                                </div>
+                                <div class="service-category-card" data-category="zayiflama-islemleri">
+                                    <i class="fas fa-weight"></i>
+                                    <h4>Zayıflama İşlemleri</h4>
+                                </div>
+                                <div class="service-category-card" data-category="vucut-bakimlari">
+                                    <i class="fas fa-spa"></i>
+                                    <h4>Vücut Bakımları</h4>
+                                </div>
+                            </div>
+                            <input type="hidden" id="service-category" name="service-category">
+                        </div>
+                        
+                        <div class="form-group" id="subcategory-group" style="display: none;">
+                            <label>Alt Kategori</label>
+                            <div class="service-category-cards" id="subcategory-cards">
+                            </div>
+                            <input type="hidden" id="service-subcategory" name="service-subcategory">
+                        </div>
+                        
+                        <div class="step-actions">
+                            <button type="button" class="btn-next" onclick="nextStep(2)">
+                                <i class="fas fa-arrow-right"></i>
+                                İleri
+                            </button>
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Hizmet Kategorisi</label>
-                        <div class="service-category-cards" id="service-category-cards">
-                            <div class="service-category-card" data-category="buz-lazer-epilasyon">
-                                <i class="fas fa-snowflake"></i>
-                                <h4>Buz Başlıklı Lazer Epilasyon</h4>
+
+                    <!-- Step 2: Staff Selection -->
+                    <div class="wizard-step" id="step-2">
+                        <h3 class="step-title">Personel Seçimi</h3>
+                        <div class="form-group">
+                            <label>Personel Seçimi</label>
+                            <div class="staff-cards" id="staff-cards">
                             </div>
-                            <div class="service-category-card" data-category="cilt-bakimlari">
-                                <i class="fas fa-leaf"></i>
-                                <h4>Cilt Bakımları</h4>
-                            </div>
-                            <div class="service-category-card" data-category="el-ayak-bakimi">
-                                <i class="fas fa-hand-paper"></i>
-                                <h4>El Ayak Bakımı</h4>
-                            </div>
-                            <div class="service-category-card" data-category="kalici-makyaj">
-                                <i class="fas fa-palette"></i>
-                                <h4>Kalıcı Makyaj</h4>
-                            </div>
-                            <div class="service-category-card" data-category="zayiflama-islemleri">
-                                <i class="fas fa-weight"></i>
-                                <h4>Zayıflama İşlemleri</h4>
-                            </div>
-                            <div class="service-category-card" data-category="vucut-bakimlari">
-                                <i class="fas fa-spa"></i>
-                                <h4>Vücut Bakımları</h4>
-                            </div>
+                            <input type="hidden" id="staff" name="staff">
                         </div>
-                        <input type="hidden" id="service-category" name="service-category">
-                    </div>
-                    
-                    <div class="form-group" id="subcategory-group" style="display: none;">
-                        <label>Alt Kategori</label>
-                        <div class="service-category-cards" id="subcategory-cards">
+                        
+                        <div class="step-actions">
+                            <button type="button" class="btn-prev" onclick="prevStep(1)">
+                                <i class="fas fa-arrow-left"></i>
+                                Geri
+                            </button>
+                            <button type="button" class="btn-next" onclick="nextStep(3)">
+                                <i class="fas fa-arrow-right"></i>
+                                İleri
+                            </button>
                         </div>
-                        <input type="hidden" id="service-subcategory" name="service-subcategory">
                     </div>
-                    
-                    <div class="form-group" id="staff-group" style="display: none;">
-                        <label>Personel Seçimi</label>
-                        <div class="staff-cards" id="staff-cards">
-                        </div>
-                        <input type="hidden" id="staff" name="staff">
-                    </div>
-                    
-                    <div class="form-row">
+
+                    <!-- Step 3: Day Selection -->
+                    <div class="wizard-step" id="step-3">
+                        <h3 class="step-title">Tarih Seçimi</h3>
                         <div class="form-group">
                             <label for="date">Tarih</label>
                             <input type="date" id="date" name="date" required>
                         </div>
+                        
+                        <div class="step-actions">
+                            <button type="button" class="btn-prev" onclick="prevStep(2)">
+                                <i class="fas fa-arrow-left"></i>
+                                Geri
+                            </button>
+                            <button type="button" class="btn-next" onclick="nextStep(4)">
+                                <i class="fas fa-arrow-right"></i>
+                                İleri
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Time Selection and Create Appointment -->
+                    <div class="wizard-step" id="step-4">
+                        <h3 class="step-title">Saat Seçimi ve Randevu Oluştur</h3>
                         <div class="form-group">
                             <label>Saat</label>
                             <div class="time-slots" id="time-slots">
                             </div>
                             <input type="hidden" id="time" name="time">
                         </div>
+                        
+                        <div class="form-group">
+                            <label for="notes">İşletmeye İletmek İstediğiniz Not</label>
+                            <textarea id="notes" name="notes" rows="3" placeholder="Özel isteklerinizi, alerjilerinizi veya notlarınızı yazabilirsiniz..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="auto-confirm" name="auto-confirm">
+                                <span class="checkmark"></span>
+                                Randevumu otomatik onayla
+                            </label>
+                        </div>
+                        
+                        <div class="step-actions">
+                            <button type="button" class="btn-prev" onclick="prevStep(3)">
+                                <i class="fas fa-arrow-left"></i>
+                                Geri
+                            </button>
+                            <button type="submit" class="btn-submit">
+                                <i class="fas fa-calendar-check"></i>
+                                Randevu Oluştur
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="notes">İşletmeye İletmek İstediğiniz Not</label>
-                        <textarea id="notes" name="notes" rows="3" placeholder="Özel isteklerinizi, alerjilerinizi veya notlarınızı yazabilirsiniz..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="auto-confirm" name="auto-confirm">
-                            <span class="checkmark"></span>
-                            Randevumu otomatik onayla
-                        </label>
-                    </div>
-                    
-                    <button type="submit" class="btn-submit">
-                        <i class="fas fa-calendar-check"></i>
-                        Randevu Al
-                    </button>
                 </form>
             </div>
         </div>

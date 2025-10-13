@@ -176,35 +176,20 @@ async function createFirebaseAdminUser() {
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-    // Wait for Firebase to load
-    const checkFirebase = setInterval(() => {
-        if (window.firebase) {
-            firebase = window.firebase;
-            auth = firebase.auth;
-            db = firebase.db;
-            database = firebase.database;
-            
-            // Import Firebase Realtime Database functions
-            import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js').then(module => {
-                get = module.get;
-                set = module.set;
-                ref = module.ref;
-                push = module.push;
-                remove = module.remove;
-                
-                clearInterval(checkFirebase);
-                initializeAdminUser();
-                initializeApp();
-                setupEventListeners();
-                loadDataFromFirebase();
-                setupScrollEffects();
-                requestNotificationPermission();
-                
-                // Check for reminders every 5 minutes
-                setInterval(checkReminders, 5 * 60 * 1000);
-            });
-        }
-    }, 100);
+    // Setup event listeners first
+    setupEventListeners();
+    
+    // Load data from local storage (fallback)
+    loadDataFromLocalStorage();
+    
+    // Setup scroll effects
+    setupScrollEffects();
+    
+    // Request notification permission
+    requestNotificationPermission();
+    
+    // Firebase initialization is disabled temporarily to prevent errors
+    // TODO: Configure Firebase properly when needed
 });
 
 // Firebase data management functions
@@ -330,39 +315,54 @@ function setupEventListeners() {
     });
     
     // Customer name input for suggestions
-    document.getElementById('name').addEventListener('input', handleCustomerNameInput);
-    document.getElementById('phoneName').addEventListener('input', handlePhoneCustomerNameInput);
+    const nameInput = document.getElementById('name');
+    if (nameInput) nameInput.addEventListener('input', handleCustomerNameInput);
+    
+    const phoneNameInput = document.getElementById('phoneName');
+    if (phoneNameInput) phoneNameInput.addEventListener('input', handlePhoneCustomerNameInput);
     
     // Date change for time slots
-    document.getElementById('date').addEventListener('change', handleDateChange);
-    document.getElementById('phoneDate').addEventListener('change', handlePhoneDateChange);
+    const dateInput = document.getElementById('date');
+    if (dateInput) dateInput.addEventListener('change', handleDateChange);
+    
+    const phoneDateInput = document.getElementById('phoneDate');
+    if (phoneDateInput) phoneDateInput.addEventListener('change', handlePhoneDateChange);
     
     // Turkish phone number formatting
-    document.getElementById('regPhone').addEventListener('input', function(e) {
-        formatTurkishPhone(e.target);
-    });
+    const regPhoneInput = document.getElementById('regPhone');
+    if (regPhoneInput) {
+        regPhoneInput.addEventListener('input', function(e) {
+            formatTurkishPhone(e.target);
+        });
+    }
     
     // Password confirmation validation
-    document.getElementById('regConfirmPassword').addEventListener('input', function(e) {
-        const password = document.getElementById('regPassword').value;
-        const confirmPassword = e.target.value;
-        
-        if (confirmPassword && password !== confirmPassword) {
-            e.target.setCustomValidity('Şifreler eşleşmiyor');
-        } else {
-            e.target.setCustomValidity('');
-        }
-    });
+    const regConfirmPasswordInput = document.getElementById('regConfirmPassword');
+    if (regConfirmPasswordInput) {
+        regConfirmPasswordInput.addEventListener('input', function(e) {
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = e.target.value;
+            
+            if (confirmPassword && password !== confirmPassword) {
+                e.target.setCustomValidity('Şifreler eşleşmiyor');
+            } else {
+                e.target.setCustomValidity('');
+            }
+        });
+    }
     
     // Real-time password validation
-    document.getElementById('regPassword').addEventListener('input', function(e) {
-        const confirmPassword = document.getElementById('regConfirmPassword');
-        if (confirmPassword.value && e.target.value !== confirmPassword.value) {
-            confirmPassword.setCustomValidity('Şifreler eşleşmiyor');
-        } else {
-            confirmPassword.setCustomValidity('');
-        }
-    });
+    const regPasswordInput = document.getElementById('regPassword');
+    if (regPasswordInput) {
+        regPasswordInput.addEventListener('input', function(e) {
+            const confirmPassword = document.getElementById('regConfirmPassword');
+            if (confirmPassword && confirmPassword.value && e.target.value !== confirmPassword.value) {
+                confirmPassword.setCustomValidity('Şifreler eşleşmiyor');
+            } else if (confirmPassword) {
+                confirmPassword.setCustomValidity('');
+            }
+        });
+    }
     
     // Smooth scrolling for navigation links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -397,7 +397,9 @@ async function handleAppointmentSubmit(e) {
     
     const appointment = {
         id: Date.now(),
-        name: formData.get('name'),
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        name: `${formData.get('firstName')} ${formData.get('lastName')}`,
         phone: formData.get('phone'),
         serviceCategory: serviceCategory,
         serviceSubcategory: serviceSubcategory,
@@ -432,9 +434,16 @@ async function handleAppointmentSubmit(e) {
         // Send WhatsApp message
         sendWhatsAppMessage(appointment);
         
-        // Reset form
+        // Reset form and go back to step 1
         e.target.reset();
         resetAppointmentForm();
+        currentStep = 1;
+        document.querySelectorAll('.wizard-step').forEach(step => step.classList.remove('active'));
+        document.querySelectorAll('.progress-step').forEach(step => {
+            step.classList.remove('active', 'completed');
+        });
+        document.getElementById('step-1').classList.add('active');
+        document.querySelector('[data-step="1"]').classList.add('active');
         
         // Update appointments display
         loadAppointments();
@@ -1615,6 +1624,18 @@ function scrollToAppointment() {
     });
 }
 
+// Scroll to the top of the appointment section (for wizard steps)
+function scrollToAppointmentSection() {
+    const appointmentSection = document.getElementById('appointment');
+    const headerHeight = document.querySelector('.header').offsetHeight;
+    const targetPosition = appointmentSection.offsetTop - headerHeight - 20; // 20px extra padding
+    
+    window.scrollTo({
+        top: targetPosition,
+        behavior: 'smooth'
+    });
+}
+
 // Handle scroll animation
 function handleScrollAnimation() {
     const elements = document.querySelectorAll('.fade-in');
@@ -2181,6 +2202,171 @@ function showPhoneAppointmentModal() {
     document.getElementById('phoneAppointmentModal').style.display = 'block';
 }
 
+// Wizard Step Navigation
+let currentStep = 1;
+
+function nextStep(stepNumber) {
+    // Validate current step before proceeding
+    if (!validateCurrentStep(currentStep)) {
+        return;
+    }
+    
+    // Hide current step
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    document.querySelector(`[data-step="${currentStep}"]`).classList.remove('active');
+    document.querySelector(`[data-step="${currentStep}"]`).classList.add('completed');
+    
+    // Show next step
+    currentStep = stepNumber;
+    document.getElementById(`step-${currentStep}`).classList.add('active');
+    document.querySelector(`[data-step="${currentStep}"]`).classList.add('active');
+    
+    // Scroll to the top of the appointment section with a small delay
+    setTimeout(() => {
+        scrollToAppointmentSection();
+    }, 100);
+    
+    // Load data for the new step
+    loadStepData(currentStep);
+}
+
+function prevStep(stepNumber) {
+    // Hide current step
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    document.querySelector(`[data-step="${currentStep}"]`).classList.remove('active');
+    
+    // Show previous step
+    currentStep = stepNumber;
+    document.getElementById(`step-${currentStep}`).classList.add('active');
+    document.querySelector(`[data-step="${currentStep}"]`).classList.add('active');
+    document.querySelector(`[data-step="${currentStep}"]`).classList.remove('completed');
+    
+    // Scroll to the top of the appointment section with a small delay
+    setTimeout(() => {
+        scrollToAppointmentSection();
+    }, 100);
+}
+
+function validateCurrentStep(step) {
+    switch(step) {
+        case 1:
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const serviceCategory = document.getElementById('service-category').value;
+            const serviceSubcategory = document.getElementById('service-subcategory').value;
+            
+            if (!firstName || !lastName || !phone) {
+                showErrorMessage('Lütfen tüm kişisel bilgileri doldurun!');
+                return false;
+            }
+            
+            if (!serviceCategory) {
+                showErrorMessage('Lütfen bir hizmet kategorisi seçin!');
+                return false;
+            }
+            
+            if (serviceSubcategory && !serviceSubcategory) {
+                showErrorMessage('Lütfen bir alt kategori seçin!');
+                return false;
+            }
+            
+            return true;
+            
+        case 2:
+            const staff = document.getElementById('staff').value;
+            if (!staff) {
+                showErrorMessage('Lütfen bir personel seçin!');
+                return false;
+            }
+            return true;
+            
+        case 3:
+            const date = document.getElementById('date').value;
+            if (!date) {
+                showErrorMessage('Lütfen bir tarih seçin!');
+                return false;
+            }
+            return true;
+            
+        case 4:
+            const time = document.getElementById('time').value;
+            if (!time) {
+                showErrorMessage('Lütfen bir saat seçin!');
+                return false;
+            }
+            return true;
+            
+        default:
+            return true;
+    }
+}
+
+function loadStepData(step) {
+    switch(step) {
+        case 2:
+            // Load staff for selected service
+            loadStaffForService();
+            break;
+        case 3:
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').setAttribute('min', today);
+            break;
+        case 4:
+            // Load time slots for selected date
+            const selectedDate = document.getElementById('date').value;
+            if (selectedDate) {
+                generateTimeSlotCards(selectedDate, document.getElementById('time-slots'));
+            }
+            break;
+    }
+}
+
+function loadStaffForService() {
+    const serviceCategory = document.getElementById('service-category').value;
+    const staffCards = document.getElementById('staff-cards');
+    
+    if (!serviceCategory) return;
+    
+    staffCards.innerHTML = '';
+    
+    // Filter staff based on service category
+    const relevantStaff = staff.filter(member => 
+        member.specialty === serviceCategories[serviceCategory]?.name || 
+        member.specialty === 'Tümü'
+    );
+    
+    if (relevantStaff.length === 0) {
+        // Show all staff if no specific specialty
+        staff.forEach(member => {
+            const card = document.createElement('div');
+            card.className = 'staff-card';
+            card.dataset.staff = member.id;
+            card.innerHTML = `
+                <div class="staff-avatar">${member.avatar}</div>
+                <h4>${member.name}</h4>
+                <p>${member.specialty}</p>
+            `;
+            card.addEventListener('click', handleStaffCardClick);
+            staffCards.appendChild(card);
+        });
+    } else {
+        relevantStaff.forEach(member => {
+            const card = document.createElement('div');
+            card.className = 'staff-card';
+            card.dataset.staff = member.id;
+            card.innerHTML = `
+                <div class="staff-avatar">${member.avatar}</div>
+                <h4>${member.name}</h4>
+                <p>${member.specialty}</p>
+            `;
+            card.addEventListener('click', handleStaffCardClick);
+            staffCards.appendChild(card);
+        });
+    }
+}
+
 // Export functions for global access
 window.showLoginModal = showLoginModal;
 window.showRegisterModal = showRegisterModal;
@@ -2197,3 +2383,5 @@ window.closeMobileMenu = closeMobileMenu;
 window.showPhoneAppointmentModal = showPhoneAppointmentModal;
 window.selectCustomer = selectCustomer;
 window.selectPhoneCustomer = selectPhoneCustomer;
+window.nextStep = nextStep;
+window.prevStep = prevStep;
