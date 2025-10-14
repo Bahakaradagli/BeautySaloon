@@ -1594,33 +1594,106 @@ function loadRevenueContent() {
         })
         .reduce((sum, apt) => sum + (apt.servicePrice || 0), 0);
     
+    // Calculate additional metrics
+    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const netProfit = totalRevenue - totalExpenses;
+    const completedAppointments = appointments.filter(apt => apt.status === 'completed').length;
+    
     const contentHTML = `
         <div class="revenue-management">
-            <div class="revenue-stats">
-                <div class="stat-card">
-                    <h4>Toplam Gelir</h4>
-                    <span class="stat-number">${totalRevenue}₺</span>
+            <!-- Modern Stats Dashboard -->
+            <div class="revenue-dashboard">
+                <div class="dashboard-header">
+                    <div class="dashboard-title">
+                        <i class="fas fa-chart-line"></i>
+                        <h2>Gelir-Gider Takibi</h2>
+                    </div>
+                    <div class="dashboard-actions">
+                        <button class="action-btn primary" onclick="showAddExpenseModal()">
+                            <i class="fas fa-plus"></i>
+                            <span>Gider Ekle</span>
+                        </button>
+                        <button class="action-btn secondary" onclick="showRevenueReport()">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Rapor</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h4>Bu Ay</h4>
-                    <span class="stat-number">${monthlyRevenue}₺</span>
-                </div>
-                <div class="stat-card">
-                    <h4>Toplam Randevu</h4>
-                    <span class="stat-number">${appointments.length}</span>
+                
+                <!-- Key Metrics Cards -->
+                <div class="metrics-grid">
+                    <div class="metric-card revenue">
+                        <div class="metric-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Toplam Gelir</div>
+                            <div class="metric-value">${totalRevenue.toLocaleString()}₺</div>
+                            <div class="metric-trend positive">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>Bu ay: ${monthlyRevenue.toLocaleString()}₺</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card expense">
+                        <div class="metric-icon">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Toplam Gider</div>
+                            <div class="metric-value">${totalExpenses.toLocaleString()}₺</div>
+                            <div class="metric-trend negative">
+                                <i class="fas fa-arrow-down"></i>
+                                <span>${expenses.length} gider</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card profit">
+                        <div class="metric-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Net Kar</div>
+                            <div class="metric-value ${netProfit >= 0 ? 'positive' : 'negative'}">${netProfit.toLocaleString()}₺</div>
+                            <div class="metric-trend ${netProfit >= 0 ? 'positive' : 'negative'}">
+                                <i class="fas fa-${netProfit >= 0 ? 'arrow-up' : 'arrow-down'}"></i>
+                                <span>Kar marjı: ${totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card appointments">
+                        <div class="metric-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Tamamlanan Randevu</div>
+                            <div class="metric-value">${completedAppointments}</div>
+                            <div class="metric-trend neutral">
+                                <i class="fas fa-calendar"></i>
+                                <span>Toplam: ${appointments.length}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div class="revenue-actions">
-                <button class="admin-btn admin-btn-md admin-btn-primary" onclick="showAddExpenseModal()">
-                    <i class="fas fa-plus"></i> Gider Ekle
-                </button>
-                <button class="admin-btn admin-btn-md admin-btn-primary" onclick="showRevenueReport()">
-                    <i class="fas fa-chart-bar"></i> Rapor
-                </button>
+            <!-- Recent Transactions -->
+            <div class="transactions-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-history"></i> Son İşlemler</h3>
+                    <div class="section-filters">
+                        <select class="filter-select" onchange="filterTransactions(this.value)">
+                            <option value="all">Tüm İşlemler</option>
+                            <option value="income">Sadece Gelirler</option>
+                            <option value="expense">Sadece Giderler</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="revenue-list" class="transactions-list"></div>
             </div>
-            
-            <div id="revenue-list"></div>
         </div>
     `;
     
@@ -2626,44 +2699,82 @@ function loadRevenueList() {
     const revenueList = document.getElementById('revenue-list');
     if (!revenueList) return;
     
-    let revenueHTML = '<h4>Son İşlemler</h4>';
+    let revenueHTML = '';
     
-    // Add completed appointments
+    // Combine all transactions
+    const allTransactions = [];
+    
+    // Add completed appointments as income
     const completedAppointments = appointments
         .filter(apt => apt.status === 'completed')
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .slice(0, 10);
     
     completedAppointments.forEach(apt => {
-        revenueHTML += `
-            <div class="revenue-item">
-                <div class="revenue-info">
-                    <h5>${apt.name} - ${apt.serviceName}</h5>
-                    <p>${apt.date} ${apt.time}</p>
-                </div>
-                <div class="revenue-amount">
-                    <span class="amount positive">+${apt.servicePrice}₺</span>
-                </div>
-            </div>
-        `;
+        allTransactions.push({
+            type: 'income',
+            title: `${apt.name} - ${apt.serviceName}`,
+            description: `Randevu - ${apt.date} ${apt.time}`,
+            amount: apt.servicePrice,
+            date: apt.date,
+            icon: 'fas fa-calendar-check',
+            category: 'Randevu'
+        });
     });
     
     // Add expenses
     const recentExpenses = expenses
         .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 5);
+        .slice(0, 10);
     
-    if (recentExpenses.length > 0) {
-        revenueHTML += '<h4>Son Giderler</h4>';
-        recentExpenses.forEach(expense => {
+    recentExpenses.forEach(expense => {
+        allTransactions.push({
+            type: 'expense',
+            title: expense.description,
+            description: `${expense.category || 'Gider'} - ${expense.date}`,
+            amount: expense.amount,
+            date: expense.date,
+            icon: 'fas fa-receipt',
+            category: expense.category || 'Gider'
+        });
+    });
+    
+    // Sort all transactions by date
+    allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    if (allTransactions.length === 0) {
+        revenueHTML = `
+            <div class="empty-transactions">
+                <div class="empty-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h4>Henüz işlem bulunmuyor</h4>
+                <p>İlk randevunuzu tamamladığınızda veya gider eklediğinizde burada görünecek.</p>
+            </div>
+        `;
+    } else {
+        allTransactions.forEach(transaction => {
+            const isIncome = transaction.type === 'income';
+            const amountClass = isIncome ? 'positive' : 'negative';
+            const amountSign = isIncome ? '+' : '-';
+            const typeClass = isIncome ? 'income' : 'expense';
+            
             revenueHTML += `
-                <div class="revenue-item">
-                    <div class="revenue-info">
-                        <h5>${expense.description}</h5>
-                        <p>${expense.date}</p>
+                <div class="transaction-item ${typeClass}">
+                    <div class="transaction-icon">
+                        <i class="${transaction.icon}"></i>
                     </div>
-                    <div class="revenue-amount">
-                        <span class="amount negative">-${expense.amount}₺</span>
+                    <div class="transaction-content">
+                        <div class="transaction-title">${transaction.title}</div>
+                        <div class="transaction-description">${transaction.description}</div>
+                        <div class="transaction-meta">
+                            <span class="transaction-category">${transaction.category}</span>
+                            <span class="transaction-date">${formatDate(transaction.date)}</span>
+                        </div>
+                    </div>
+                    <div class="transaction-amount ${amountClass}">
+                        <span class="amount-value">${amountSign}${transaction.amount.toLocaleString()}₺</span>
+                        <span class="amount-type">${isIncome ? 'Gelir' : 'Gider'}</span>
                     </div>
                 </div>
             `;
@@ -2671,6 +2782,37 @@ function loadRevenueList() {
     }
     
     revenueList.innerHTML = revenueHTML;
+}
+
+// Format date for display
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+        return 'Dün';
+    } else if (diffDays < 7) {
+        return `${diffDays} gün önce`;
+    } else {
+        return date.toLocaleDateString('tr-TR');
+    }
+}
+
+// Filter transactions
+function filterTransactions(filter) {
+    const transactionItems = document.querySelectorAll('.transaction-item');
+    
+    transactionItems.forEach(item => {
+        if (filter === 'all') {
+            item.style.display = 'flex';
+        } else if (filter === 'income') {
+            item.style.display = item.classList.contains('income') ? 'flex' : 'none';
+        } else if (filter === 'expense') {
+            item.style.display = item.classList.contains('expense') ? 'flex' : 'none';
+        }
+    });
 }
 
 // Show add expense modal
@@ -3147,27 +3289,37 @@ function importServices() {
 function loadStaffList() {
     const staffList = document.getElementById('staff-list');
     if (!staffList) return;
-    
-    const staffHTML = staff.map(member => `
-        <div class="staff-item">
-            <div class="staff-info">
-                <div class="staff-avatar">${member.avatar}</div>
-                <div>
-                    <h4>${member.name}</h4>
-                    <p>Uzmanlık: ${member.specialty}</p>
+
+    const initials = (name = '') => {
+        const parts = String(name).trim().split(/\s+/);
+        const a = parts[0]?.[0] || '';
+        const b = parts.length > 1 ? parts[parts.length - 1][0] : '';
+        return (a + b).toUpperCase();
+    };
+
+    const staffHTML = staff.map(member => {
+        const role = member.specialty || 'Personel';
+        return `
+        <div class="staff-card-row">
+            <div class="staff-left">
+                <div class="staff-main">
+                    <h4 class="staff-name">${member.name}</h4>
+                    <div class="staff-tags">
+                        <span class="tag tag-role"><i class="fas fa-briefcase"></i> ${role}</span>
+                    </div>
                 </div>
             </div>
-            <div class="staff-actions">
-                <button onclick="editStaff(${member.id})" class="admin-btn admin-btn-sm admin-btn-primary">
-                    <i class="fas fa-edit"></i> Düzenle
+            <div class="staff-right">
+                <button onclick="editStaff(${member.id})" class="admin-btn admin-btn-sm admin-btn-primary" title="Düzenle">
+                    <i class="fas fa-edit"></i>
                 </button>
-                <button onclick="deleteStaff(${member.id})" class="admin-btn admin-btn-sm admin-btn-delete">
-                    <i class="fas fa-trash"></i> Sil
+                <button onclick="deleteStaff(${member.id})" class="admin-btn admin-btn-sm admin-btn-delete" title="Sil">
+                    <i class="fas fa-trash"></i>
                 </button>
             </div>
-        </div>
-    `).join('');
-    
+        </div>`;
+    }).join('');
+
     staffList.innerHTML = staffHTML;
 }
 
