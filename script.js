@@ -1556,10 +1556,10 @@ function loadAppointmentsContent() {
                                                 <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Tamamlandı</option>
                                                 <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>İptal</option>
                                             </select>
-                                            <button class="btn-whatsapp" onclick="sendWhatsAppMessage('${appointment.phone}')" title="WhatsApp">
+                                            <button class="admin-btn admin-btn-sm admin-btn-whatsapp admin-btn-icon" onclick="sendWhatsAppMessage('${appointment.phone}')" title="WhatsApp">
                                                 <i class="fab fa-whatsapp"></i>
                                             </button>
-                                            <button class="btn-delete" onclick="deleteAppointment(${appointment.id})" title="Sil">
+                                            <button class="admin-btn admin-btn-sm admin-btn-delete admin-btn-icon" onclick="deleteAppointment(${appointment.id})" title="Sil">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -1612,10 +1612,10 @@ function loadRevenueContent() {
             </div>
             
             <div class="revenue-actions">
-                <button class="btn-primary" onclick="showAddExpenseModal()">
+                <button class="admin-btn admin-btn-md admin-btn-primary" onclick="showAddExpenseModal()">
                     <i class="fas fa-plus"></i> Gider Ekle
                 </button>
-                <button class="btn-primary" onclick="showRevenueReport()">
+                <button class="admin-btn admin-btn-md admin-btn-primary" onclick="showRevenueReport()">
                     <i class="fas fa-chart-bar"></i> Rapor
                 </button>
             </div>
@@ -1641,16 +1641,16 @@ function loadServicesContent() {
     const contentHTML = `
         <div class="services-management">
             <div class="service-actions">
-                <button class="btn-primary" onclick="showAddServiceModal()">
+                <button class="admin-btn admin-btn-md admin-btn-primary" onclick="showAddServiceModal()">
                     <i class="fas fa-plus"></i> Yeni Kategori Ekle
                 </button>
-                <button class="btn-secondary" onclick="showEditServiceModal()">
+                <button class="admin-btn admin-btn-md admin-btn-secondary" onclick="showEditServiceModal()">
                     <i class="fas fa-edit"></i> Kategorileri Düzenle
                 </button>
-                <button class="btn-info" onclick="exportServices()">
+                <button class="admin-btn admin-btn-md admin-btn-info" onclick="exportServices()">
                     <i class="fas fa-download"></i> Hizmetleri Dışa Aktar
                 </button>
-                <button class="btn-warning" onclick="importServices()">
+                <button class="admin-btn admin-btn-md admin-btn-warning" onclick="importServices()">
                     <i class="fas fa-upload"></i> Hizmetleri İçe Aktar
                 </button>
             </div>
@@ -1685,19 +1685,19 @@ function loadStaffContent() {
     const contentHTML = `
         <div class="staff-management">
             <div class="staff-actions">
-                <button class="btn-primary" onclick="showAddStaffModal()">
+                <button class="admin-btn admin-btn-md admin-btn-primary" onclick="showAddStaffModal()">
                     <i class="fas fa-plus"></i> Personel Ekle
                 </button>
-                <button class="btn-secondary" onclick="showStaffSalaryModal()">
+                <button class="admin-btn admin-btn-md admin-btn-secondary" onclick="showStaffSalaryModal()">
                     <i class="fas fa-money-bill-wave"></i> Maaş Yönetimi
                 </button>
-                <button class="btn-info" onclick="showStaffAccountsModal()">
+                <button class="admin-btn admin-btn-md admin-btn-info" onclick="showStaffAccountsModal()">
                     <i class="fas fa-key"></i> Personel Hesapları
                 </button>
-                <button class="btn-success" onclick="showStaffAvailabilityModal()">
+                <button class="admin-btn admin-btn-md admin-btn-success" onclick="showStaffAvailabilityModal()">
                     <i class="fas fa-calendar-check"></i> Müsaitlik Yönetimi
                 </button>
-                <button class="btn-warning" onclick="showStaffAppointmentsModal()">
+                <button class="admin-btn admin-btn-md admin-btn-warning" onclick="showStaffAppointmentsModal()">
                     <i class="fas fa-calendar-alt"></i> Atanan Randevular
                 </button>
             </div>
@@ -1712,11 +1712,16 @@ function loadStaffContent() {
 // Load customers content
 function loadCustomersContent() {
     const content = document.getElementById('admin-main-content');
+    // Hide admin filters for customers section
+    const adminFilters = document.getElementById('admin-filters');
+    if (adminFilters) {
+        adminFilters.style.display = 'none';
+    }
     
     const contentHTML = `
         <div class="customers-management">
             <div class="customer-actions">
-                <button class="btn-primary" onclick="sendBulkWhatsAppMessage()">
+                <button class="admin-btn admin-btn-md admin-btn-whatsapp" onclick="sendBulkWhatsAppMessage()">
                     <i class="fab fa-whatsapp"></i> Toplu Mesaj
                 </button>
             </div>
@@ -1819,7 +1824,7 @@ function showStaffAvailabilityModal() {
                                     <label>İzin Günleri</label>
                                     <div class="off-days">
                                         <input type="date" id="off-day-${member.id}" class="off-day-input">
-                                        <button class="btn-sm btn-primary" onclick="addOffDay(${member.id})">
+                                        <button class="admin-btn admin-btn-sm admin-btn-primary" onclick="addOffDay(${member.id})">
                                             <i class="fas fa-plus"></i> İzin Ekle
                                         </button>
                                     </div>
@@ -1860,7 +1865,7 @@ function showStaffAppointmentsModal() {
         <div class="staff-appointments-management">
             <h3>Personel Atanan Randevular</h3>
             <div class="appointments-actions">
-                <button class="btn-primary" onclick="showManualAppointmentModal()">
+                <button class="admin-btn admin-btn-md admin-btn-primary" onclick="showManualAppointmentModal()">
                     <i class="fas fa-plus"></i> Manuel Randevu Oluştur
                 </button>
             </div>
@@ -1887,12 +1892,12 @@ function showStaffAppointmentsModal() {
                                         </div>
                                         <div class="appointment-actions">
                                             ${appointment.status === 'pending' ? `
-                                                <button class="btn-warning" onclick="cancelAppointment(${appointment.id})">
+                                                <button class="admin-btn admin-btn-sm admin-btn-warning" onclick="cancelAppointment(${appointment.id})">
                                                     <i class="fas fa-times"></i> İptal Et
                                                 </button>
                                             ` : ''}
                                             ${appointment.status === 'confirmed' ? `
-                                                <button class="btn-success" onclick="showInvoiceModal(${appointment.id})">
+                                                <button class="admin-btn admin-btn-sm admin-btn-success" onclick="showInvoiceModal(${appointment.id})">
                                                     <i class="fas fa-receipt"></i> Adisyon Aç
                                                 </button>
                                             ` : ''}
@@ -1973,7 +1978,7 @@ function showManualAppointmentModal() {
                     <label for="manualNotes">Notlar</label>
                     <textarea id="manualNotes" name="notes" rows="3" placeholder="Randevu notları..."></textarea>
                 </div>
-                <button type="submit" class="btn-submit">Randevu Oluştur</button>
+                <button type="submit" class="admin-btn admin-btn-md admin-btn-primary">Randevu Oluştur</button>
             </form>
         </div>
     `;
@@ -2034,7 +2039,7 @@ function showInvoiceModal(appointmentId) {
                                 `)
                             ).join('')}
                         </select>
-                        <button type="button" onclick="addAdditionalService()" class="btn-sm btn-primary">
+                        <button type="button" onclick="addAdditionalService()" class="admin-btn admin-btn-sm admin-btn-primary">
                             <i class="fas fa-plus"></i> Ekle
                         </button>
                     </div>
@@ -2074,10 +2079,10 @@ function showInvoiceModal(appointmentId) {
                 </div>
                 
                 <div class="invoice-actions">
-                    <button class="btn-success" onclick="completeAppointment(${appointmentId})">
+                    <button class="admin-btn admin-btn-md admin-btn-success" onclick="completeAppointment(${appointmentId})">
                         <i class="fas fa-check"></i> Randevuyu Tamamla
                     </button>
-                    <button class="btn-secondary" onclick="closeModal('invoiceModal')">
+                    <button class="admin-btn admin-btn-md admin-btn-secondary" onclick="closeModal('invoiceModal')">
                         <i class="fas fa-times"></i> İptal
                     </button>
                 </div>
@@ -2370,17 +2375,17 @@ function loadMyAppointments() {
                     
                     <div class="appointment-actions">
                         ${appointment.status === 'confirmed' || appointment.status === 'pending' ? `
-                            <button class="btn-cancel" onclick="cancelAppointment(${appointment.id})">
+                            <button class="admin-btn admin-btn-sm admin-btn-warning" onclick="cancelAppointment(${appointment.id})">
                                 <i class="fas fa-times"></i> İptal Et
                             </button>
                         ` : ''}
                         ${appointment.status === 'completed' ? `
-                            <button class="btn-completed" disabled>
+                            <button class="admin-btn admin-btn-sm admin-btn-success" disabled>
                                 <i class="fas fa-check-circle"></i> Tamamlandı
                             </button>
                         ` : ''}
                         ${appointment.status === 'cancelled' ? `
-                            <button class="btn-cancelled" disabled>
+                            <button class="admin-btn admin-btn-sm admin-btn-danger" disabled>
                                 <i class="fas fa-times-circle"></i> İptal Edildi
                             </button>
                         ` : ''}
@@ -2538,7 +2543,7 @@ function loadAppointmentsList() {
                     <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Tamamlandı</option>
                     <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>İptal</option>
                 </select>
-                <button onclick="deleteAppointment(${appointment.id})" class="btn-delete">Sil</button>
+                <button onclick="deleteAppointment(${appointment.id})" class="admin-btn admin-btn-sm admin-btn-delete">Sil</button>
             </div>
         </div>
     `).join('');
@@ -2697,7 +2702,7 @@ function showAddExpenseModal() {
                         <option value="diger">Diğer</option>
                     </select>
                 </div>
-                <button type="submit" class="btn-submit">Gider Ekle</button>
+                <button type="submit" class="admin-btn admin-btn-md admin-btn-primary">Gider Ekle</button>
             </form>
         </div>
     `;
@@ -2789,10 +2794,10 @@ function showRevenueReport() {
                 </div>
             </div>
             <div class="report-actions">
-                <button onclick="printReport()" class="btn-primary">
+                <button onclick="printReport()" class="admin-btn admin-btn-md admin-btn-primary">
                     <i class="fas fa-print"></i> Yazdır
                 </button>
-                <button onclick="exportReport()" class="btn-primary">
+                <button onclick="exportReport()" class="admin-btn admin-btn-md admin-btn-primary">
                     <i class="fas fa-download"></i> Dışa Aktar
                 </button>
             </div>
@@ -2840,8 +2845,8 @@ function exportReport() {
 function loadCustomersList() {
     const customersList = document.getElementById('customers-list');
     if (!customersList) return;
-    
-    // Get unique customers from appointments
+
+    // Aggregate unique customers from appointments
     const customerMap = new Map();
     appointments.forEach(apt => {
         if (!customerMap.has(apt.phone)) {
@@ -2852,31 +2857,48 @@ function loadCustomersList() {
                 lastVisit: apt.date
             });
         }
-        customerMap.get(apt.phone).appointments.push(apt);
-        if (new Date(apt.date) > new Date(customerMap.get(apt.phone).lastVisit)) {
-            customerMap.get(apt.phone).lastVisit = apt.date;
+        const entry = customerMap.get(apt.phone);
+        entry.appointments.push(apt);
+        if (new Date(apt.date) > new Date(entry.lastVisit)) {
+            entry.lastVisit = apt.date;
         }
     });
-    
-    const customersHTML = Array.from(customerMap.values()).map(customer => `
-        <div class="customer-item">
-            <div class="customer-info">
-                <h4>${customer.name}</h4>
-                <p>Tel: ${customer.phone}</p>
-                <p>Toplam Randevu: ${customer.appointments.length}</p>
-                <p>Son Ziyaret: ${new Date(customer.lastVisit).toLocaleDateString('tr-TR')}</p>
+
+    // Sort by last visit desc
+    const sortedCustomers = Array.from(customerMap.values())
+        .sort((a, b) => new Date(b.lastVisit) - new Date(a.lastVisit));
+
+    // Helper to create initials
+    const getInitials = (name) => {
+        if (!name) return '?';
+        const parts = name.trim().split(/\s+/);
+        const first = parts[0]?.[0] || '';
+        const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+        return (first + last).toUpperCase();
+    };
+
+    const customersHTML = sortedCustomers.map(customer => `
+        <div class="customer-card">
+            <div class="customer-avatar" aria-hidden="true">${getInitials(customer.name)}</div>
+            <div class="customer-main">
+                <h4 class="customer-name">${customer.name}</h4>
+                <div class="customer-meta">
+                    <span class="badge badge-phone"><i class="fas fa-phone"></i>${customer.phone}</span>
+                    <span class="badge badge-visits"><i class="fas fa-calendar-check"></i>${customer.appointments.length} randevu</span>
+                    <span class="badge badge-last"><i class="fas fa-clock"></i>${new Date(customer.lastVisit).toLocaleDateString('tr-TR')}</span>
+                </div>
             </div>
             <div class="customer-actions">
-                <button onclick="sendWhatsAppMessage('${customer.phone}')" class="btn-whatsapp">
-                    <i class="fab fa-whatsapp"></i> WhatsApp
+                <button onclick="sendWhatsAppMessage('${customer.phone}')" class="admin-btn admin-btn-sm admin-btn-whatsapp" title="WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
                 </button>
-                <button onclick="viewCustomerHistory('${customer.phone}')" class="btn-primary">
-                    <i class="fas fa-history"></i> Geçmiş
+                <button onclick="viewCustomerHistory('${customer.phone}')" class="admin-btn admin-btn-sm admin-btn-primary" title="Geçmiş">
+                    <i class="fas fa-history"></i>
                 </button>
             </div>
         </div>
     `).join('');
-    
+
     customersList.innerHTML = customersHTML;
 }
 
@@ -2905,46 +2927,59 @@ function loadServicesList() {
             }
             
             servicesHTML += `
-                <div class="service-category-item">
-                    <div class="service-category-header">
-                        <div class="category-info">
+                <div class="service-category-card">
+                    <div class="category-header">
+                        <div class="category-icon">
                             <i class="${category.icon}"></i>
-                            <h4>${category.name}</h4>
+                        </div>
+                        <div class="category-details">
+                            <span class="category-label">Kategori</span>
+                            <h3 class="category-name">${category.name}</h3>
                             <span class="category-count">${category.subcategories.length} alt hizmet</span>
                         </div>
-                        <div class="service-category-actions">
-                            <button class="btn-sm btn-success" onclick="addSubcategory('${categoryKey}')">
-                                <i class="fas fa-plus"></i> Alt Hizmet Ekle
+                        <div class="category-actions">
+                            <button class="admin-btn admin-btn-sm admin-btn-success" onclick="addSubcategory('${categoryKey}')" title="Alt Hizmet Ekle">
+                                <i class="fas fa-plus"></i>
                             </button>
-                            <button class="btn-sm btn-primary" onclick="editServiceCategory('${categoryKey}')">
-                                <i class="fas fa-edit"></i> Düzenle
+                            <button class="admin-btn admin-btn-sm admin-btn-primary" onclick="editServiceCategory('${categoryKey}')" title="Düzenle">
+                                <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-sm btn-danger" onclick="deleteServiceCategory('${categoryKey}')">
-                                <i class="fas fa-trash"></i> Sil
+                            <button class="admin-btn admin-btn-sm admin-btn-danger" onclick="deleteServiceCategory('${categoryKey}')" title="Sil">
+                                <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="subcategory-list">
+                    
+                    <div class="subcategory-grid">
                         ${category.subcategories && category.subcategories.length > 0 ? category.subcategories.map((sub, index) => `
-                            <div class="subcategory-item">
-                                <div class="subcategory-info">
-                                    <span class="subcategory-name">${sub.name}</span>
-                                    <span class="subcategory-duration">${sub.duration} dk</span>
-                                    <span class="subcategory-price">${sub.price}₺</span>
+                            <div class="subcategory-card">
+                                <div class="subcategory-header">
+                                    <h4 class="subcategory-name">${sub.name}</h4>
+                                    <div class="subcategory-meta">
+                                        <span class="subcategory-duration">
+                                            <i class="fas fa-clock"></i> ${sub.duration} dk
+                                        </span>
+                                        <span class="subcategory-price">
+                                            <i class="fas fa-lira-sign"></i> ${sub.price}₺
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="subcategory-actions">
-                                    <button class="btn-sm btn-warning" onclick="editSubcategory('${categoryKey}', ${index})">
+                                    <button class="admin-btn admin-btn-sm admin-btn-warning" onclick="editSubcategory('${categoryKey}', ${index})" title="Düzenle">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn-sm btn-danger" onclick="deleteSubcategory('${categoryKey}', ${index})">
+                                    <button class="admin-btn admin-btn-sm admin-btn-danger" onclick="deleteSubcategory('${categoryKey}', ${index})" title="Sil">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </div>
                         `).join('') : `
                             <div class="empty-subcategory">
+                                <div class="empty-icon">
+                                    <i class="fas fa-plus-circle"></i>
+                                </div>
                                 <p>Bu kategoride henüz alt hizmet yok.</p>
-                                <button class="btn-sm btn-success" onclick="addSubcategory('${categoryKey}')">
+                                <button class="admin-btn admin-btn-sm admin-btn-success" onclick="addSubcategory('${categoryKey}')">
                                     <i class="fas fa-plus"></i> İlk Alt Hizmeti Ekle
                                 </button>
                             </div>
@@ -3123,10 +3158,10 @@ function loadStaffList() {
                 </div>
             </div>
             <div class="staff-actions">
-                <button onclick="editStaff(${member.id})" class="btn-primary">
+                <button onclick="editStaff(${member.id})" class="admin-btn admin-btn-sm admin-btn-primary">
                     <i class="fas fa-edit"></i> Düzenle
                 </button>
-                <button onclick="deleteStaff(${member.id})" class="btn-delete">
+                <button onclick="deleteStaff(${member.id})" class="admin-btn admin-btn-sm admin-btn-delete">
                     <i class="fas fa-trash"></i> Sil
                 </button>
             </div>
@@ -3175,10 +3210,10 @@ function loadUsers() {
                 </div>
             </div>
             <div class="user-actions">
-                <button class="btn-sm btn-primary" onclick="sendUserMessage('${user.phone}', '${user.name}')">
+                <button class="admin-btn admin-btn-sm admin-btn-whatsapp" onclick="sendUserMessage('${user.phone}', '${user.name}')">
                     <i class="fab fa-whatsapp"></i> Mesaj
                 </button>
-                <button class="btn-sm btn-secondary" onclick="viewUserAppointments('${user.email}')">
+                <button class="admin-btn admin-btn-sm admin-btn-secondary" onclick="viewUserAppointments('${user.email}')">
                     <i class="fas fa-calendar"></i> Randevular
                 </button>
             </div>
@@ -3289,10 +3324,10 @@ function displayFilteredAppointments(filteredAppointments) {
                     <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Tamamlandı</option>
                     <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>İptal</option>
                 </select>
-                <button onclick="sendWhatsAppMessage('${appointment.phone}')" class="btn-whatsapp">
+                <button onclick="sendWhatsAppMessage('${appointment.phone}')" class="admin-btn admin-btn-sm admin-btn-whatsapp admin-btn-icon">
                     <i class="fab fa-whatsapp"></i>
                 </button>
-                <button onclick="deleteAppointment(${appointment.id})" class="btn-delete">
+                <button onclick="deleteAppointment(${appointment.id})" class="admin-btn admin-btn-sm admin-btn-delete admin-btn-icon">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -3496,7 +3531,7 @@ function viewCustomerHistory(phone) {
                             ${apt.servicePrice ? `<p>Fiyat: ${apt.servicePrice}₺</p>` : ''}
                         </div>
                         <div class="appointment-actions">
-                            <button onclick="sendWhatsAppMessage('${apt.phone}')" class="btn-whatsapp">
+                            <button onclick="sendWhatsAppMessage('${apt.phone}')" class="admin-btn admin-btn-sm admin-btn-whatsapp admin-btn-icon">
                                 <i class="fab fa-whatsapp"></i>
                             </button>
                         </div>
@@ -4299,10 +4334,10 @@ function showEditServiceModal() {
                         <div class="edit-category-item">
                             <h4>${category.name}</h4>
                             <div class="category-actions">
-                                <button class="btn-sm btn-primary" onclick="editCategoryDetails('${categoryKey}')">
+                                <button class="admin-btn admin-btn-sm admin-btn-primary" onclick="editCategoryDetails('${categoryKey}')">
                                     <i class="fas fa-edit"></i> Düzenle
                                 </button>
-                                <button class="btn-sm btn-success" onclick="addSubcategory('${categoryKey}')">
+                                <button class="admin-btn admin-btn-sm admin-btn-success" onclick="addSubcategory('${categoryKey}')">
                                     <i class="fas fa-plus"></i> Alt Hizmet Ekle
                                 </button>
                             </div>
@@ -4505,8 +4540,8 @@ function showIconPicker(currentIcon = '', targetInputId = '') {
                 }).join('')}
             </div>
             <div class="icon-picker-actions">
-                <button class="btn-secondary" onclick="closeModal('iconPickerModal')">İptal</button>
-                <button class="btn-primary" id="selectIconBtn" disabled>Seç</button>
+                <button class="admin-btn admin-btn-md admin-btn-secondary" onclick="closeModal('iconPickerModal')">İptal</button>
+                <button class="admin-btn admin-btn-md admin-btn-primary" id="selectIconBtn" disabled>Seç</button>
             </div>
         </div>
     `;
@@ -4865,17 +4900,17 @@ function showStaffAccountsModal() {
                                         <p><strong>Oluşturulma:</strong> ${new Date(account.createdAt).toLocaleDateString('tr-TR')}</p>
                                     </div>
                                     <div class="account-actions">
-                                        <button class="btn-sm btn-warning" onclick="regeneratePassword(${member.id})">
+                                        <button class="admin-btn admin-btn-sm admin-btn-warning" onclick="regeneratePassword(${member.id})">
                                             <i class="fas fa-key"></i> Şifre Yenile
                                         </button>
-                                        <button class="btn-sm btn-danger" onclick="deleteStaffAccount(${member.id})">
+                                        <button class="admin-btn admin-btn-sm admin-btn-danger" onclick="deleteStaffAccount(${member.id})">
                                             <i class="fas fa-trash"></i> Hesap Sil
                                         </button>
                                     </div>
                                 ` : `
                                     <div class="no-account">
                                         <p>Henüz hesap oluşturulmamış</p>
-                                        <button class="btn-sm btn-primary" onclick="createStaffAccount(${member.id})">
+                                        <button class="admin-btn admin-btn-sm admin-btn-primary" onclick="createStaffAccount(${member.id})">
                                             <i class="fas fa-plus"></i> Hesap Oluştur
                                         </button>
                                     </div>
@@ -5562,3 +5597,107 @@ window.handleAddStaffSubmit = handleAddStaffSubmit;
 window.editStaff = editStaff;
 window.handleEditStaffSubmit = handleEditStaffSubmit;
 window.deleteStaff = deleteStaff;
+
+// ==============================
+// Services Section V2 – Redesign
+// ==============================
+let _svcState = { selectedCategory: 'all', query: '' };
+
+function _renderHomepageServicesV2() {
+    const servicesGrid = document.getElementById('services-grid');
+    if (!servicesGrid) return;
+    const cats = Object.entries(serviceCategories || {});
+
+    if (cats.length === 0) {
+        servicesGrid.innerHTML = `
+            <div class="empty-services">
+                <i class="fas fa-spa"></i>
+                <h3>Henüz hizmet eklenmemiş</h3>
+                <p>Hizmetler yakında eklenecek</p>
+            </div>
+        `;
+        return;
+    }
+
+    const chips = [`<button class="svc-chip ${_svcState.selectedCategory==='all'?'active':''}" data-key="all">Tümü</button>`]
+        .concat(cats.map(([key, cat]) => `<button class="svc-chip ${_svcState.selectedCategory===key?'active':''}" data-key="${key}">${cat.name}</button>`))
+        .join('');
+
+    const gather = () => {
+        let list = [];
+        if (_svcState.selectedCategory === 'all') {
+            cats.forEach(([_, cat]) => (cat.subcategories || []).forEach(sub => list.push({ catName: cat.name, ...sub })));
+        } else {
+            const cat = serviceCategories[_svcState.selectedCategory];
+            if (cat) (cat.subcategories || []).forEach(sub => list.push({ catName: cat.name, ...sub }));
+        }
+        const q = (_svcState.query || '').trim().toLowerCase();
+        return q ? list.filter(s => String(s.name).toLowerCase().includes(q)) : list;
+    };
+
+    const services = gather();
+    const cards = services.map(s => `
+        <div class="svc-card">
+            <div class="svc-card-header">
+                <span class="svc-cat">${s.catName}</span>
+                <span class="svc-duration"><i class="fas fa-clock"></i> ${s.duration} dk</span>
+            </div>
+            <h4 class="svc-title">${s.name}</h4>
+            <div class="svc-footer">
+                <span class="svc-price">${s.price}₺</span>
+                <button class="svc-cta" onclick="selectServiceForAppointment('${s.name}', ${s.price}, ${s.duration})">
+                    <i class="fas fa-calendar-plus"></i> Randevu Al
+                </button>
+            </div>
+        </div>
+    `).join('');
+
+    servicesGrid.innerHTML = `
+        <div class="services-v2">
+            <div class="svc-toolbar">
+                <div class="svc-chips">${chips}</div>
+                <div class="svc-search">
+                    <i class="fas fa-search"></i>
+                    <input id="svc-search-input" type="text" placeholder="Hizmet ara..." value="${_svcState.query}">
+                </div>
+            </div>
+            <div class="svc-grid">${cards || '<div class="svc-empty">Aramanıza uygun hizmet bulunamadı.</div>'}</div>
+        </div>
+    `;
+
+    // Bind interactions
+    servicesGrid.querySelectorAll('.svc-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            _svcState.selectedCategory = btn.dataset.key;
+            _renderHomepageServicesV2();
+        });
+    });
+    const searchInput = document.getElementById('svc-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', e => {
+            _svcState.query = e.target.value;
+            _renderHomepageServicesV2();
+        });
+    }
+}
+
+// Override existing loader with V2 render
+async function loadHomepageServices() {
+    const servicesGrid = document.getElementById('services-grid');
+    if (!servicesGrid) return;
+    try {
+        await loadServiceCategoriesFromFirebase();
+        _renderHomepageServicesV2();
+    } catch (err) {
+        console.error('Error loading homepage services (v2):', err);
+        servicesGrid.innerHTML = `
+            <div class="error-services">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Hizmetler yüklenemedi</h3>
+                <p>Lütfen sayfayı yenileyin</p>
+            </div>
+        `;
+    }
+}
+
+window.renderHomepageServices = _renderHomepageServicesV2;
