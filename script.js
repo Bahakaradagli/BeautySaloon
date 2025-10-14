@@ -557,8 +557,16 @@ function checkUserLoginStatus() {
             currentUser = JSON.parse(savedUser);
             console.log('User found in localStorage:', currentUser);
             
-            // Update navigation for logged in user
-            updateNavForLoggedInUser();
+            // Check user role and redirect accordingly
+            if (currentUser.role === 'admin') {
+                showAdminView();
+            } else if (currentUser.role === 'staff') {
+                showStaffView();
+                document.getElementById('staff-name-display').textContent = currentUser.name;
+            } else {
+                // Update navigation for regular logged in user
+                updateNavForLoggedInUser();
+            }
         } catch (error) {
             console.error('Error parsing saved user:', error);
             localStorage.removeItem('currentUser');
@@ -3290,22 +3298,41 @@ function loadStaffList() {
     const staffList = document.getElementById('staff-list');
     if (!staffList) return;
 
-    const initials = (name = '') => {
-        const parts = String(name).trim().split(/\s+/);
-        const a = parts[0]?.[0] || '';
-        const b = parts.length > 1 ? parts[parts.length - 1][0] : '';
-        return (a + b).toUpperCase();
-    };
+    if (staff.length === 0) {
+        staffList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h3>Henüz personel eklenmemiş</h3>
+                <p>İlk personelinizi eklemek için "Personel Ekle" butonuna tıklayın.</p>
+            </div>
+        `;
+        return;
+    }
 
     const staffHTML = staff.map(member => {
         const role = member.specialty || 'Personel';
+        const status = member.status || 'pending';
+        const accountStatus = member.accountCreated ? 'active' : 'pending';
+        const statusText = accountStatus === 'active' ? 'Hesap Oluşturuldu' : 'Hesap Bekliyor';
+        const statusClass = accountStatus === 'active' ? 'success' : 'warning';
+        
         return `
         <div class="staff-card-row">
             <div class="staff-left">
+                <div class="staff-avatar">${member.avatar}</div>
                 <div class="staff-main">
                     <h4 class="staff-name">${member.name}</h4>
                     <div class="staff-tags">
                         <span class="tag tag-role"><i class="fas fa-briefcase"></i> ${role}</span>
+                        <span class="tag tag-${statusClass}">
+                            <i class="fas fa-${accountStatus === 'active' ? 'check-circle' : 'clock'}"></i> 
+                            ${statusText}
+                        </span>
+                    </div>
+                    <div class="staff-info">
+                        <p><i class="fas fa-phone"></i> ${member.phone}</p>
+                        ${member.email ? `<p><i class="fas fa-envelope"></i> ${member.email}</p>` : ''}
+                        ${member.salary ? `<p><i class="fas fa-money-bill-wave"></i> ${member.salary}₺</p>` : ''}
                     </div>
                 </div>
             </div>
@@ -3313,6 +3340,11 @@ function loadStaffList() {
                 <button onclick="editStaff(${member.id})" class="admin-btn admin-btn-sm admin-btn-primary" title="Düzenle">
                     <i class="fas fa-edit"></i>
                 </button>
+                ${accountStatus === 'pending' ? `
+                    <button onclick="sendStaffInvite(${member.id})" class="admin-btn admin-btn-sm admin-btn-success" title="Davet Gönder">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                ` : ''}
                 <button onclick="deleteStaff(${member.id})" class="admin-btn admin-btn-sm admin-btn-delete" title="Sil">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -5575,39 +5607,54 @@ function showAddStaffModal() {
                     <h3>Yeni Personel Ekle</h3>
                     <button class="close" onclick="closeModal('addStaffModal')">&times;</button>
                 </div>
-                <form id="addStaffForm" onsubmit="handleAddStaffSubmit(event)">
-                    <div class="form-group">
-                        <label for="staffName">Ad Soyad:</label>
-                        <input type="text" id="staffName" name="name" required>
+                <div class="modal-body">
+                    <div class="info-box">
+                        <i class="fas fa-info-circle"></i>
+                        <p>Personel eklendikten sonra, personel verilen e-posta ve şifre ile giriş yapıp profilini dolduracaktır.</p>
                     </div>
-                    <div class="form-group">
-                        <label for="staffSpecialty">Uzmanlık:</label>
-                        <input type="text" id="staffSpecialty" name="specialty" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="staffPhone">Telefon:</label>
-                        <input type="tel" id="staffPhone" name="phone" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="staffEmail">E-posta:</label>
-                        <input type="email" id="staffEmail" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="staffAvatar">Avatar:</label>
-                        <select id="staffAvatar" name="avatar" required>
-                            <option value="👩‍⚕️">👩‍⚕️ Hemşire</option>
-                            <option value="👨‍⚕️">👨‍⚕️ Doktor</option>
-                            <option value="👩‍💼">👩‍💼 Uzman</option>
-                            <option value="👨‍💼">👨‍💼 Uzman</option>
-                            <option value="👩‍🎨">👩‍🎨 Sanatçı</option>
-                            <option value="👨‍🎨">👨‍🎨 Sanatçı</option>
-                        </select>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" onclick="closeModal('addStaffModal')" class="btn-secondary">İptal</button>
-                        <button type="submit" class="btn-primary">Personel Ekle</button>
-                    </div>
-                </form>
+                    <form id="addStaffForm" onsubmit="handleAddStaffSubmit(event)">
+                        <div class="form-group">
+                            <label for="staffName">Ad Soyad:</label>
+                            <input type="text" id="staffName" name="name" required placeholder="Personelin adı ve soyadı">
+                        </div>
+                        <div class="form-group">
+                            <label for="staffEmail">E-posta Adresi:</label>
+                            <input type="email" id="staffEmail" name="email" required placeholder="personel@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="staffPassword">Geçici Şifre:</label>
+                            <input type="password" id="staffPassword" name="password" required placeholder="En az 6 karakter">
+                        </div>
+                        <div class="form-group">
+                            <label for="staffSpecialty">Uzmanlık Alanı:</label>
+                            <input type="text" id="staffSpecialty" name="specialty" required placeholder="Örn: Saç Kesimi, Makyaj, Cilt Bakımı">
+                        </div>
+                        <div class="form-group">
+                            <label for="staffPhone">Telefon Numarası:</label>
+                            <input type="tel" id="staffPhone" name="phone" required placeholder="0555 123 45 67">
+                        </div>
+                        <div class="form-group">
+                            <label for="staffAvatar">Avatar Seçimi:</label>
+                            <select id="staffAvatar" name="avatar" required>
+                                <option value="👩‍⚕️">👩‍⚕️ Hemşire</option>
+                                <option value="👨‍⚕️">👨‍⚕️ Doktor</option>
+                                <option value="👩‍💼">👩‍💼 Uzman</option>
+                                <option value="👨‍💼">👨‍💼 Uzman</option>
+                                <option value="👩‍🎨">👩‍🎨 Sanatçı</option>
+                                <option value="👨‍🎨">👨‍🎨 Sanatçı</option>
+                                <option value="💇‍♀️">💇‍♀️ Kuaför</option>
+                                <option value="💇‍♂️">💇‍♂️ Kuaför</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" onclick="closeModal('addStaffModal')" class="btn-secondary">İptal</button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-user-plus"></i>
+                                Personel Ekle
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     `;
@@ -5623,10 +5670,16 @@ function handleAddStaffSubmit(event) {
     const newStaff = {
         id: Date.now(),
         name: formData.get('name'),
+        email: formData.get('email'),
+        password: formData.get('password'),
         specialty: formData.get('specialty'),
         phone: formData.get('phone'),
-        email: formData.get('email'),
         avatar: formData.get('avatar'),
+        status: 'active', // Personel aktif
+        accountCreated: true, // Hesap oluşturuldu
+        salary: null, // Personel kendi belirleyecek
+        availability: [], // Personel kendi yönetecek
+        role: 'staff',
         createdAt: new Date().toISOString()
     };
     
@@ -5641,7 +5694,608 @@ function handleAddStaffSubmit(event) {
     closeModal('addStaffModal');
     loadStaffList();
     
+    // Show success message
+    showSuccessMessage(`${newStaff.name} personel olarak eklendi. Personel verilen e-posta (${newStaff.email}) ve şifre ile giriş yapabilir.`);
+    
     console.log('New staff added:', newStaff);
+}
+
+// Staff Panel Functions
+function showStaffView() {
+    // Hide regular sections
+    document.querySelectorAll('section:not(#staff-panel)').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Show staff panel
+    const staffPanel = document.getElementById('staff-panel');
+    if (staffPanel) {
+        staffPanel.style.display = 'block';
+        document.body.classList.add('staff-mode');
+        loadStaffAvailability();
+    } else {
+        console.error('Staff panel element not found!');
+    }
+}
+
+// Go to home page from staff panel
+function goToHomePage() {
+    // Remove staff mode
+    document.body.classList.remove('staff-mode');
+    
+    // Hide staff panel
+    const staffPanel = document.getElementById('staff-panel');
+    if (staffPanel) {
+        staffPanel.style.display = 'none';
+    }
+    
+    // Show regular sections
+    document.querySelectorAll('section').forEach(section => {
+        if (section.id !== 'staff-panel' && section.id !== 'admin-panel') {
+            section.style.display = 'block';
+        }
+    });
+    
+    // Clear current user
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    
+    // Update navigation
+    updateUI();
+    
+    showSuccessMessage('Ana sayfaya dönüldü!');
+}
+
+// Global logout function
+function logout() {
+    // Check if in staff mode
+    if (document.body.classList.contains('staff-mode')) {
+        // Staff logout
+        document.body.classList.remove('staff-mode');
+        const staffPanel = document.getElementById('staff-panel');
+        if (staffPanel) {
+            staffPanel.style.display = 'none';
+        }
+    }
+    
+    // Check if in admin mode
+    if (document.getElementById('admin-panel') && document.getElementById('admin-panel').style.display !== 'none') {
+        // Admin logout
+        document.getElementById('admin-panel').style.display = 'none';
+    }
+    
+    // Show regular sections
+    document.querySelectorAll('section').forEach(section => {
+        if (section.id !== 'staff-panel' && section.id !== 'admin-panel') {
+            section.style.display = 'block';
+        }
+    });
+    
+    // Clear current user
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    
+    // Update navigation
+    updateUI();
+    
+    showSuccessMessage('Başarıyla çıkış yapıldı!');
+}
+
+// Staff Tab Navigation
+function showStaffTab(tabName) {
+    // Update active nav item
+    document.querySelectorAll('.staff-nav-list .nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.target.closest('.nav-item').classList.add('active');
+    
+    // Update section title and content
+    const sectionTitles = {
+        'availability': { title: 'Müsaitlik Yönetimi', icon: 'fas fa-calendar-check' },
+        'appointments': { title: 'Randevularım', icon: 'fas fa-calendar-alt' },
+        'profile': { title: 'Profil Bilgileri', icon: 'fas fa-user' }
+    };
+    
+    const section = sectionTitles[tabName];
+    if (section) {
+        document.getElementById('staff-section-title').innerHTML = `
+            <i class="${section.icon}"></i>
+            ${section.title}
+        `;
+    }
+    
+    // Load content based on tab
+    loadStaffTabContent(tabName);
+}
+
+// Load staff tab content
+function loadStaffTabContent(tabName) {
+    const content = document.getElementById('staff-main-content');
+    
+    switch(tabName) {
+        case 'availability':
+            loadStaffAvailability();
+            break;
+        case 'appointments':
+            loadStaffAppointments();
+            break;
+        case 'profile':
+            loadStaffProfile();
+            break;
+    }
+}
+
+// Load staff availability
+function loadStaffAvailability() {
+    const content = document.getElementById('staff-main-content');
+    
+    const contentHTML = `
+        <div class="availability-management">
+            <div class="availability-header">
+                <h3>Müsaitlik Durumunuzu Belirleyin</h3>
+                <p>Hangi günlerde ve saatlerde müsait olduğunuzu seçin.</p>
+            </div>
+            
+            <div class="availability-calendar">
+                <div class="day-header">Pazartesi</div>
+                <div class="day-header">Salı</div>
+                <div class="day-header">Çarşamba</div>
+                <div class="day-header">Perşembe</div>
+                <div class="day-header">Cuma</div>
+                <div class="day-header">Cumartesi</div>
+                <div class="day-header">Pazar</div>
+                
+                <!-- Time slots will be generated here -->
+                <div class="time-slot" data-day="monday" data-time="09:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>09:00</span>
+                </div>
+                <div class="time-slot" data-day="monday" data-time="10:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>10:00</span>
+                </div>
+                <div class="time-slot" data-day="monday" data-time="11:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>11:00</span>
+                </div>
+                <div class="time-slot" data-day="monday" data-time="12:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>12:00</span>
+                </div>
+                <div class="time-slot" data-day="monday" data-time="13:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>13:00</span>
+                </div>
+                <div class="time-slot" data-day="monday" data-time="14:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>14:00</span>
+                </div>
+                <div class="time-slot" data-day="monday" data-time="15:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>15:00</span>
+                </div>
+                <div class="time-slot" data-day="monday" data-time="16:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>16:00</span>
+                </div>
+                <div class="time-slot" data-day="monday" data-time="17:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>17:00</span>
+                </div>
+                <div class="time-slot" data-day="monday" data-time="18:00" onclick="toggleAvailability(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>18:00</span>
+                </div>
+            </div>
+            
+            <div class="availability-actions">
+                <button class="btn btn-primary" onclick="saveAvailability()">
+                    <i class="fas fa-save"></i>
+                    Müsaitlik Durumunu Kaydet
+                </button>
+            </div>
+        </div>
+    `;
+    
+    content.innerHTML = contentHTML;
+}
+
+// Load staff appointments
+function loadStaffAppointments() {
+    const content = document.getElementById('staff-main-content');
+    
+    // Get current staff member's appointments
+    const staffAppointments = appointments.filter(apt => apt.staffId === currentUser.id);
+    
+    if (staffAppointments.length === 0) {
+        content.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-alt"></i>
+                <h3>Henüz randevunuz yok</h3>
+                <p>Size atanan randevular burada görünecek.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const appointmentsHTML = staffAppointments.map(apt => `
+        <div class="appointment-card">
+            <div class="appointment-header">
+                <div class="appointment-customer">${apt.name}</div>
+                <div class="appointment-status status-${apt.status}">${getStatusText(apt.status)}</div>
+            </div>
+            <div class="appointment-details">
+                <div class="appointment-detail">
+                    <i class="fas fa-calendar"></i>
+                    <span>${apt.date}</span>
+                </div>
+                <div class="appointment-detail">
+                    <i class="fas fa-clock"></i>
+                    <span>${apt.time}</span>
+                </div>
+                <div class="appointment-detail">
+                    <i class="fas fa-spa"></i>
+                    <span>${apt.serviceName}</span>
+                </div>
+                <div class="appointment-detail">
+                    <i class="fas fa-phone"></i>
+                    <span>${apt.phone}</span>
+                </div>
+            </div>
+            ${apt.notes ? `<div class="appointment-notes"><strong>Notlar:</strong> ${apt.notes}</div>` : ''}
+            <div class="appointment-actions">
+                ${apt.status === 'pending' ? `
+                    <button class="btn btn-confirm" onclick="confirmAppointment(${apt.id})">
+                        <i class="fas fa-check"></i>
+                        Onayla
+                    </button>
+                    <button class="btn btn-cancel" onclick="cancelAppointment(${apt.id})">
+                        <i class="fas fa-times"></i>
+                        İptal Et
+                    </button>
+                ` : ''}
+                ${apt.status === 'confirmed' ? `
+                    <button class="btn btn-secondary" onclick="completeAppointment(${apt.id})">
+                        <i class="fas fa-check-circle"></i>
+                        Tamamlandı
+                    </button>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    content.innerHTML = appointmentsHTML;
+}
+
+// Load staff profile
+function loadStaffProfile() {
+    const content = document.getElementById('staff-main-content');
+    
+    const staffMember = staff.find(s => s.id === currentUser.id);
+    
+    const contentHTML = `
+        <div class="profile-management">
+            <div class="profile-header">
+                <div class="profile-avatar-large">
+                    ${staffMember?.avatar || '👤'}
+                </div>
+                <div class="profile-info">
+                    <h3>${staffMember?.name || 'Personel Adı'}</h3>
+                    <p>${staffMember?.specialty || 'Uzmanlık Alanı'}</p>
+                </div>
+            </div>
+            
+            <div class="profile-form">
+                <h4>Profil Bilgileri</h4>
+                <form id="staffProfileForm" onsubmit="updateStaffProfile(event)">
+                    <div class="form-group">
+                        <label for="staffEmail">E-posta Adresi:</label>
+                        <input type="email" id="staffEmail" name="email" value="${staffMember?.email || ''}" placeholder="E-posta adresinizi girin">
+                    </div>
+                    <div class="form-group">
+                        <label for="staffSalary">Maaş Beklentisi (₺):</label>
+                        <input type="number" id="staffSalary" name="salary" value="${staffMember?.salary || ''}" placeholder="Maaş beklentinizi girin">
+                    </div>
+                    <div class="form-group">
+                        <label for="staffPhone">Telefon:</label>
+                        <input type="tel" id="staffPhone" name="phone" value="${staffMember?.phone || ''}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffSpecialty">Uzmanlık Alanı:</label>
+                        <input type="text" id="staffSpecialty" name="specialty" value="${staffMember?.specialty || ''}" readonly>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Profili Güncelle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    content.innerHTML = contentHTML;
+}
+
+// Toggle availability
+function toggleAvailability(element) {
+    element.classList.toggle('available');
+    element.classList.toggle('unavailable');
+}
+
+// Save availability
+function saveAvailability() {
+    const timeSlots = document.querySelectorAll('.time-slot');
+    const availability = [];
+    
+    timeSlots.forEach(slot => {
+        if (slot.classList.contains('available')) {
+            availability.push({
+                day: slot.dataset.day,
+                time: slot.dataset.time
+            });
+        }
+    });
+    
+    // Update staff availability
+    const staffMember = staff.find(s => s.id === currentUser.id);
+    if (staffMember) {
+        staffMember.availability = availability;
+        localStorage.setItem('staff', JSON.stringify(staff));
+        showSuccessMessage('Müsaitlik durumunuz kaydedildi!');
+    }
+}
+
+// Confirm appointment
+function confirmAppointment(appointmentId) {
+    const appointment = appointments.find(apt => apt.id === appointmentId);
+    if (appointment) {
+        appointment.status = 'confirmed';
+        localStorage.setItem('appointments', JSON.stringify(appointments));
+        loadStaffAppointments();
+        showSuccessMessage('Randevu onaylandı!');
+    }
+}
+
+// Cancel appointment
+function cancelAppointment(appointmentId) {
+    const appointment = appointments.find(apt => apt.id === appointmentId);
+    if (appointment) {
+        appointment.status = 'cancelled';
+        localStorage.setItem('appointments', JSON.stringify(appointments));
+        loadStaffAppointments();
+        showSuccessMessage('Randevu iptal edildi!');
+    }
+}
+
+// Complete appointment
+function completeAppointment(appointmentId) {
+    const appointment = appointments.find(apt => apt.id === appointmentId);
+    if (appointment) {
+        appointment.status = 'completed';
+        localStorage.setItem('appointments', JSON.stringify(appointments));
+        loadStaffAppointments();
+        showSuccessMessage('Randevu tamamlandı olarak işaretlendi!');
+    }
+}
+
+// Update staff profile
+function updateStaffProfile(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const staffMember = staff.find(s => s.id === currentUser.id);
+    
+    if (staffMember) {
+        staffMember.email = formData.get('email');
+        staffMember.salary = formData.get('salary');
+        staffMember.accountCreated = true;
+        
+        localStorage.setItem('staff', JSON.stringify(staff));
+        showSuccessMessage('Profil bilgileriniz güncellendi!');
+    }
+}
+
+// Send staff invite
+function sendStaffInvite(staffId) {
+    const member = staff.find(s => s.id === staffId);
+    if (!member) return;
+    
+    const inviteMessage = `
+        Merhaba ${member.name},
+        
+        ${member.specialty} uzmanı olarak ekibimize katıldınız! 
+        
+        Personel hesabınızı oluşturmak için aşağıdaki adımları takip edin:
+        1. Ana sayfadaki "Personel" butonuna tıklayın
+        2. "Hesap oluşturun" linkine tıklayın
+        3. Bilgilerinizi doldurun ve hesabınızı oluşturun
+        
+        Hesabınızı oluşturduktan sonra:
+        - Gmail adresinizi belirleyebilirsiniz
+        - Maaş bilgilerinizi girebilirsiniz
+        - Müsaitlik durumunuzu yönetebilirsiniz
+        - Randevularınızı takip edebilirsiniz
+        
+        İyi çalışmalar!
+    `;
+    
+    // WhatsApp mesajı gönder
+    const whatsappUrl = `https://wa.me/${member.phone.replace(/\D/g, '')}?text=${encodeURIComponent(inviteMessage)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    showSuccessMessage(`${member.name} için davet mesajı gönderildi!`);
+}
+
+// Switch login tab
+function switchLoginTab(type) {
+    // Update tab buttons
+    document.querySelectorAll('.user-type-tabs .tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(type + 'Tab').classList.add('active');
+    
+    // Show/hide forms
+    document.getElementById('customerLoginForm').style.display = type === 'customer' ? 'block' : 'none';
+    document.getElementById('staffLoginForm').style.display = type === 'staff' ? 'block' : 'none';
+}
+
+// Switch register tab
+function switchRegisterTab(type) {
+    // Update tab buttons
+    document.querySelectorAll('.user-type-tabs .tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(type + 'RegisterTab').classList.add('active');
+    
+    // Show/hide forms
+    document.getElementById('customerRegisterForm').style.display = type === 'customer' ? 'block' : 'none';
+    document.getElementById('staffRegisterForm').style.display = type === 'staff' ? 'block' : 'none';
+}
+
+// Show staff login modal (legacy function for compatibility)
+function showStaffLoginModal() {
+    closeAllModals();
+    document.getElementById('loginModal').style.display = 'block';
+    switchLoginTab('staff');
+}
+
+// Show staff registration modal (legacy function for compatibility)
+function showStaffRegistration() {
+    closeModal('loginModal');
+    document.getElementById('registerModal').style.display = 'block';
+    switchRegisterTab('staff');
+}
+
+// Handle staff registration
+function handleStaffRegistration(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirmPassword');
+    
+    // Validate passwords match
+    if (password !== confirmPassword) {
+        showErrorMessage('Şifreler eşleşmiyor!');
+        return;
+    }
+    
+    // Validate password length
+    if (password.length < 6) {
+        showErrorMessage('Şifre en az 6 karakter olmalıdır!');
+        return;
+    }
+    
+    // Check if email already exists
+    const existingStaff = staff.find(s => s.email === formData.get('email'));
+    if (existingStaff) {
+        showErrorMessage('Bu e-posta adresi zaten kullanılıyor!');
+        return;
+    }
+    
+    // Create new staff member
+    const newStaff = {
+        id: Date.now(),
+        name: formData.get('name'),
+        email: formData.get('email'),
+        password: password, // In real app, this should be hashed
+        phone: formData.get('phone'),
+        specialty: formData.get('specialty'),
+        salary: formData.get('salary') || null,
+        avatar: '👤', // Default avatar
+        status: 'active',
+        accountCreated: true,
+        availability: [],
+        role: 'staff',
+        createdAt: new Date().toISOString()
+    };
+    
+    // Add to staff array
+    staff.push(newStaff);
+    
+    // Save to localStorage
+    localStorage.setItem('staff', JSON.stringify(staff));
+    
+    // Close modal and show success
+    closeModal('staffRegistrationModal');
+    showSuccessMessage('Personel hesabınız başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.');
+    
+    // Auto-open login modal
+    setTimeout(() => {
+        showStaffLoginModal();
+    }, 1000);
+}
+
+// Handle staff login
+function handleStaffLogin(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const email = formData.get('email');
+    const password = formData.get('password');
+    
+    // Check if admin is trying to login as staff
+    if (email === 'admingülcemal@gmail.com' && password === '123456789') {
+        // Admin login as staff
+        currentUser = {
+            id: 'admin-staff',
+            name: 'Admin (Personel Modu)',
+            email: email,
+            role: 'staff'
+        };
+        
+        // Save to localStorage
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Close modal
+        closeModal('loginModal');
+        
+        // Show staff panel
+        showStaffView();
+        
+        // Update staff name display
+        document.getElementById('staff-name-display').textContent = 'Admin (Personel Modu)';
+        
+        showSuccessMessage('Admin olarak personel paneline giriş yapıldı!');
+        return;
+    }
+    
+    // Find staff member
+    const staffMember = staff.find(s => s.email === email && s.password === password);
+    
+    if (!staffMember) {
+        showErrorMessage('E-posta veya şifre hatalı!');
+        return;
+    }
+    
+    if (!staffMember.accountCreated) {
+        showErrorMessage('Hesabınız henüz aktif değil! Lütfen admin ile iletişime geçin.');
+        return;
+    }
+    
+    // Set current user
+    currentUser = {
+        id: staffMember.id,
+        name: staffMember.name,
+        email: staffMember.email,
+        role: 'staff'
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    // Close modal
+    closeModal('loginModal');
+    
+    // Show staff panel
+    showStaffView();
+    
+    // Update staff name display
+    document.getElementById('staff-name-display').textContent = staffMember.name;
+    
+    showSuccessMessage(`Hoş geldiniz, ${staffMember.name}!`);
 }
 
 function editStaff(staffId) {

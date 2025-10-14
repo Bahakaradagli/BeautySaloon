@@ -233,6 +233,71 @@
         </div>
     </section>
 
+    <!-- Staff Panel Section (Hidden by default) -->
+    <section id="staff-panel" class="staff-panel-section" style="display: none;">
+        <div class="staff-layout">
+            <!-- Staff Header -->
+            <header class="staff-header">
+                <div class="staff-brand">
+                    <div class="staff-logo">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="staff-brand-text">
+                        <h1>Personel Paneli</h1>
+                        <p id="staff-name-display">Personel Adı</p>
+                    </div>
+                </div>
+                <div class="staff-header-actions">
+                    <span class="staff-welcome">Hoş geldin!</span>
+                    <button class="btn-home" onclick="goToHomePage()">
+                        <i class="fas fa-home"></i>
+                        <span>Ana Sayfa</span>
+                    </button>
+                    <button class="btn-logout" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Çıkış</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Staff Content -->
+            <div class="staff-content">
+                <!-- Sidebar -->
+                <aside class="staff-sidebar">
+                    <nav class="staff-nav">
+                        <ul class="staff-nav-list">
+                            <li class="nav-item active" onclick="showStaffTab('availability')">
+                                <i class="fas fa-calendar-check"></i>
+                                <span>Müsaitlik</span>
+                            </li>
+                            <li class="nav-item" onclick="showStaffTab('appointments')">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Randevularım</span>
+                            </li>
+                            <li class="nav-item" onclick="showStaffTab('profile')">
+                                <i class="fas fa-user"></i>
+                                <span>Profil</span>
+                            </li>
+                        </ul>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <main class="staff-main">
+                    <div class="staff-main-header">
+                        <h2 id="staff-section-title">
+                            <i class="fas fa-calendar-check"></i>
+                            Müsaitlik Yönetimi
+                        </h2>
+                    </div>
+                    <div class="staff-main-content" id="staff-main-content">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </main>
+            </div>
+        </div>
+    </section>
+
     <!-- Services Section -->
     <section id="services" class="services">
         <div class="container">
@@ -463,67 +528,153 @@
 
     <!-- Login Modal -->
     <div id="loginModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content login-modal">
             <span class="close" onclick="closeModal('loginModal')">&times;</span>
-            <h2>Giriş Yap</h2>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="loginEmail">E-posta</label>
-                    <input type="text" id="loginEmail" name="email" required>
+            <div class="login-header">
+                <div class="login-icon">
+                    <i class="fas fa-user"></i>
                 </div>
-                <div class="form-group">
-                    <label for="loginPassword">Şifre</label>
-                    <input type="password" id="loginPassword" name="password" required>
+                <h2>Giriş Yap</h2>
+                <p>Hesabınıza giriş yapın</p>
+            </div>
+            
+            <!-- User Type Tabs -->
+            <div class="user-type-tabs">
+                <button class="tab-button active" onclick="switchLoginTab('customer')" id="customerTab">
+                    <i class="fas fa-user"></i>
+                    <span>Müşteri</span>
+                </button>
+                <button class="tab-button" onclick="switchLoginTab('staff')" id="staffTab">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Personel</span>
+                </button>
+            </div>
+            
+            <!-- Customer Login Form -->
+            <div id="customerLoginForm" class="login-form-content">
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">E-posta:</label>
+                        <input type="email" id="loginEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Şifre:</label>
+                        <input type="password" id="loginPassword" name="password" required>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="rememberMe" name="rememberMe">
+                            <span class="checkmark"></span>
+                            Beni hatırla
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-submit">Giriş Yap</button>
+                </form>
+                <div class="login-footer">
+                    <p>Hesabınız yok mu? <a href="#" onclick="showRegisterModal()">Kayıt olun</a></p>
                 </div>
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="rememberMe" name="rememberMe">
-                        <span class="checkmark"></span>
-                        Beni hatırla
-                    </label>
+            </div>
+            
+            <!-- Staff Login Form -->
+            <div id="staffLoginForm" class="login-form-content" style="display: none;">
+                <form id="staffLoginFormModal" onsubmit="handleStaffLogin(event)">
+                    <div class="form-group">
+                        <label for="staffLoginEmail">E-posta Adresiniz:</label>
+                        <input type="email" id="staffLoginEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffLoginPassword">Şifre:</label>
+                        <input type="password" id="staffLoginPassword" name="password" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Giriş Yap</button>
+                </form>
+                <div class="login-footer">
+                    <p>Hesabınız yok mu? <a href="#" onclick="showStaffRegistration()">Hesap oluşturun</a></p>
                 </div>
-                <button type="submit" class="btn-submit">Giriş Yap</button>
-            </form>
+            </div>
         </div>
     </div>
 
     <!-- Register Modal -->
     <div id="registerModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content register-modal">
             <span class="close" onclick="closeModal('registerModal')">&times;</span>
-            <h2>Kayıt Ol</h2>
-            <form id="registerForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="regFirstName">Ad</label>
-                        <input type="text" id="regFirstName" name="firstName" required placeholder="Adınızı girin">
-                    </div>
-                    <div class="form-group">
-                        <label for="regLastName">Soyad</label>
-                        <input type="text" id="regLastName" name="lastName" required placeholder="Soyadınızı girin">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="regEmail">E-posta</label>
-                    <input type="email" id="regEmail" name="email" required placeholder="ornek@email.com">
-                </div>
-                <div class="form-group">
-                    <label for="regPhone">Telefon Numarası</label>
-                    <input type="tel" id="regPhone" name="phone" required placeholder="XXX XXX XX XX" maxlength="13">
-                </div>
-                <div class="form-group">
-                    <label for="regPassword">Şifre</label>
-                    <input type="password" id="regPassword" name="password" required placeholder="En az 6 karakter">
-                </div>
-                <div class="form-group">
-                    <label for="regConfirmPassword">Şifre Tekrar</label>
-                    <input type="password" id="regConfirmPassword" name="confirmPassword" required placeholder="Şifrenizi tekrar girin">
-                </div>
-                <button type="submit" class="btn-submit">
+            <div class="register-header">
+                <div class="register-icon">
                     <i class="fas fa-user-plus"></i>
-                    Kayıt Ol
+                </div>
+                <h2>Kayıt Ol</h2>
+                <p>Hesabınızı oluşturun</p>
+            </div>
+            
+            <!-- User Type Tabs -->
+            <div class="user-type-tabs">
+                <button class="tab-button active" onclick="switchRegisterTab('customer')" id="customerRegisterTab">
+                    <i class="fas fa-user"></i>
+                    <span>Müşteri</span>
                 </button>
-            </form>
+                <button class="tab-button" onclick="switchRegisterTab('staff')" id="staffRegisterTab">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Personel</span>
+                </button>
+            </div>
+            
+            <!-- Customer Register Form -->
+            <div id="customerRegisterForm" class="register-form-content">
+                <form id="registerForm" onsubmit="handleRegister(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regFirstName">Ad:</label>
+                            <input type="text" id="regFirstName" name="firstName" required placeholder="Adınızı girin">
+                        </div>
+                        <div class="form-group">
+                            <label for="regLastName">Soyad:</label>
+                            <input type="text" id="regLastName" name="lastName" required placeholder="Soyadınızı girin">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="regEmail">E-posta:</label>
+                        <input type="email" id="regEmail" name="email" required placeholder="ornek@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="regPhone">Telefon Numarası:</label>
+                        <input type="tel" id="regPhone" name="phone" required placeholder="XXX XXX XX XX" maxlength="13">
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">Şifre:</label>
+                        <input type="password" id="regPassword" name="password" required placeholder="En az 6 karakter">
+                    </div>
+                    <div class="form-group">
+                        <label for="regConfirmPassword">Şifre Tekrar:</label>
+                        <input type="password" id="regConfirmPassword" name="confirmPassword" required placeholder="Şifrenizi tekrar girin">
+                    </div>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-user-plus"></i>
+                        Kayıt Ol
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Staff Register Form -->
+            <div id="staffRegisterForm" class="register-form-content" style="display: none;">
+                <div class="staff-register-info">
+                    <div class="info-icon">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <h3>Personel Hesabı Oluşturulamaz</h3>
+                    <p>Personel hesapları sadece admin tarafından oluşturulabilir. Eğer personel iseniz, admin tarafından size verilen e-posta ve şifre ile giriş yapabilirsiniz.</p>
+                    <div class="info-actions">
+                        <button class="btn-secondary" onclick="switchRegisterTab('customer')">
+                            <i class="fas fa-user"></i>
+                            Müşteri Olarak Kayıt Ol
+                        </button>
+                        <button class="btn-primary" onclick="switchLoginTab('staff')">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Personel Girişi Yap
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -534,6 +685,91 @@
             <h2><i class="fas fa-calendar-alt"></i> Randevularım</h2>
             <div id="my-appointments-content">
                 <!-- Appointments will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Registration Modal -->
+    <div id="staffRegistrationModal" class="modal">
+        <div class="modal-content staff-registration-modal">
+            <span class="close" onclick="closeModal('staffRegistrationModal')">&times;</span>
+            <div class="staff-registration-header">
+                <div class="staff-registration-icon">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h2>Personel Hesap Oluştur</h2>
+                <p>Personel hesabınızı oluşturmak için aşağıdaki bilgileri doldurun.</p>
+            </div>
+            <form id="staffRegistrationForm" onsubmit="handleStaffRegistration(event)">
+                <div class="form-group">
+                    <label for="staffRegName">Ad Soyad:</label>
+                    <input type="text" id="staffRegName" name="name" required placeholder="Adınızı ve soyadınızı girin">
+                </div>
+                <div class="form-group">
+                    <label for="staffRegEmail">E-posta Adresi:</label>
+                    <input type="email" id="staffRegEmail" name="email" required placeholder="ornek@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="staffRegPassword">Şifre:</label>
+                    <input type="password" id="staffRegPassword" name="password" required placeholder="En az 6 karakter">
+                </div>
+                <div class="form-group">
+                    <label for="staffRegConfirmPassword">Şifre Tekrar:</label>
+                    <input type="password" id="staffRegConfirmPassword" name="confirmPassword" required placeholder="Şifrenizi tekrar girin">
+                </div>
+                <div class="form-group">
+                    <label for="staffRegPhone">Telefon Numarası:</label>
+                    <input type="tel" id="staffRegPhone" name="phone" required placeholder="0555 123 45 67">
+                </div>
+                <div class="form-group">
+                    <label for="staffRegSpecialty">Uzmanlık Alanı:</label>
+                    <input type="text" id="staffRegSpecialty" name="specialty" required placeholder="Örn: Saç Kesimi, Makyaj, Cilt Bakımı">
+                </div>
+                <div class="form-group">
+                    <label for="staffRegSalary">Maaş Beklentisi (₺):</label>
+                    <input type="number" id="staffRegSalary" name="salary" placeholder="Maaş beklentinizi girin">
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="closeModal('staffRegistrationModal')" class="btn-secondary">İptal</button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Hesap Oluştur
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Staff Login Modal -->
+    <div id="staffLoginModal" class="modal">
+        <div class="modal-content staff-login-modal">
+            <span class="close" onclick="closeModal('staffLoginModal')">&times;</span>
+            <div class="staff-login-header">
+                <div class="staff-login-icon">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h2>Personel Girişi</h2>
+                <p>Personel paneline giriş yapın.</p>
+            </div>
+            <form id="staffLoginForm" onsubmit="handleStaffLogin(event)">
+                <div class="form-group">
+                    <label for="staffLoginEmail">E-posta Adresi:</label>
+                    <input type="email" id="staffLoginEmail" name="email" required placeholder="ornek@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="staffLoginPassword">Şifre:</label>
+                    <input type="password" id="staffLoginPassword" name="password" required placeholder="Şifrenizi girin">
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="closeModal('staffLoginModal')" class="btn-secondary">İptal</button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Giriş Yap
+                    </button>
+                </div>
+            </form>
+            <div class="staff-login-footer">
+                <p>Hesabınız yok mu? <a href="#" onclick="showStaffRegistration()">Hesap oluşturun</a></p>
             </div>
         </div>
     </div>
