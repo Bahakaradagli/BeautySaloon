@@ -1821,17 +1821,50 @@ function loadSettingsContent() {
     const contentHTML = `
         <div class="settings-management">
             <div class="settings-grid">
-                <div class="setting-item">
-                    <label>Otomatik Onay</label>
-                    <input type="checkbox" id="auto-confirm-setting" onchange="updateSetting('autoConfirm', this.checked)">
+                <div class="setting-card">
+                    <div class="setting-meta">
+                        <div class="setting-icon gradient-purple">
+                            <i class="fas fa-check-double"></i>
+                        </div>
+                        <div class="setting-text">
+                            <h4>Otomatik Onay</h4>
+                            <p>Yeni randevuları otomatik olarak onaylayın.</p>
+                        </div>
+                    </div>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="auto-confirm-setting" onchange="updateSetting('autoConfirm', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
-                <div class="setting-item">
-                    <label>WhatsApp Hatırlatma</label>
-                    <input type="checkbox" id="whatsapp-reminder-setting" onchange="updateSetting('whatsappReminder', this.checked)">
+                <div class="setting-card">
+                    <div class="setting-meta">
+                        <div class="setting-icon gradient-green">
+                            <i class="fab fa-whatsapp"></i>
+                        </div>
+                        <div class="setting-text">
+                            <h4>WhatsApp Hatırlatma</h4>
+                            <p>Otomatik WhatsApp bildirimi gönder.</p>
+                        </div>
+                    </div>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="whatsapp-reminder-setting" onchange="updateSetting('whatsappReminder', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
-                <div class="setting-item">
-                    <label>Hatırlatma Saati (saat öncesi)</label>
-                    <input type="number" id="reminder-hours-setting" onchange="updateSetting('reminderHours', this.value)" min="1" max="24">
+                <div class="setting-card">
+                    <div class="setting-meta">
+                        <div class="setting-icon gradient-orange">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="setting-text">
+                            <h4>Hatırlatma Saati</h4>
+                            <p>Randevudan kaç saat önce hatırlatma gönderilsin?</p>
+                        </div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="number" id="reminder-hours-setting" onchange="updateSetting('reminderHours', this.value)" min="1" max="24">
+                        <span class="control-suffix">saat önce</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2238,45 +2271,62 @@ function showRegularView() {
     }
 }
 
-// Logout function
-function logout() {
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    
-    // Clear appointment form fields
-    const firstNameInput = document.getElementById('firstName');
-    const lastNameInput = document.getElementById('lastName');
-    const phoneInput = document.getElementById('phone');
-    
-    if (firstNameInput) firstNameInput.value = '';
-    if (lastNameInput) lastNameInput.value = '';
-    if (phoneInput) phoneInput.value = '';
-    
-    // Force hide admin panel first
+// Logout function (shared across customer, admin and staff views)
+function logout(message = 'Başarıyla çıkış yapıldı!') {
+    // Remove staff/admin mode specific classes and panels
+    document.body.classList.remove('staff-mode', 'admin-mode');
+    const staffPanel = document.getElementById('staff-panel');
+    if (staffPanel) {
+        staffPanel.style.display = 'none';
+    }
     const adminPanel = document.getElementById('admin-panel');
     if (adminPanel) {
         adminPanel.style.display = 'none';
+        adminPanel.style.visibility = 'hidden';
     }
     
-    // Show regular view
+    // Clear session data
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    
+    // Reset appointment form and wizard state
+    const appointmentForm = document.getElementById('appointmentForm');
+    if (appointmentForm) {
+        appointmentForm.reset();
+    }
+    resetAppointmentForm();
+    currentStep = 1;
+    document.querySelectorAll('.wizard-step').forEach(step => step.classList.remove('active'));
+    const firstStep = document.getElementById('step-1');
+    if (firstStep) {
+        firstStep.classList.add('active');
+    }
+    document.querySelectorAll('.progress-step').forEach((step, index) => {
+        step.classList.remove('active', 'completed');
+        if (index === 0) {
+            step.classList.add('active');
+        }
+    });
+    
+    // Restore public sections
     showRegularView();
     
-    // Reset navigation to show auth buttons
+    // Reset navigation buttons
     const navActions = document.querySelector('.nav-actions');
-    const authButtons = document.getElementById('auth-buttons');
-    const profileDropdown = document.getElementById('profile-dropdown');
-    
     if (navActions) {
         navActions.style.display = 'flex';
     }
-    
+    const authButtons = document.getElementById('auth-buttons');
     if (authButtons) {
         authButtons.style.display = 'flex';
     }
-    
+    const profileDropdown = document.getElementById('profile-dropdown');
     if (profileDropdown) {
         profileDropdown.style.display = 'none';
+        profileDropdown.classList.remove('active');
     }
+    
+    showSuccessMessage(message);
 }
 
 // Update profile information in dropdown
@@ -3090,12 +3140,15 @@ function loadServicesList() {
                         <div class="category-actions">
                             <button class="admin-btn admin-btn-sm admin-btn-success" onclick="addSubcategory('${categoryKey}')" title="Alt Hizmet Ekle">
                                 <i class="fas fa-plus"></i>
+                                <span>Alt Hizmet</span>
                             </button>
-                            <button class="admin-btn admin-btn-sm admin-btn-primary" onclick="editServiceCategory('${categoryKey}')" title="Düzenle">
+                            <button class="admin-btn admin-btn-sm admin-btn-primary" onclick="editServiceCategory('${categoryKey}')" title="Kategori Düzenle">
                                 <i class="fas fa-edit"></i>
+                                <span>Düzenle</span>
                             </button>
-                            <button class="admin-btn admin-btn-sm admin-btn-danger" onclick="deleteServiceCategory('${categoryKey}')" title="Sil">
+                            <button class="admin-btn admin-btn-sm admin-btn-danger" onclick="deleteServiceCategory('${categoryKey}')" title="Kategori Sil">
                                 <i class="fas fa-trash"></i>
+                                <span>Sil</span>
                             </button>
                         </div>
                     </div>
@@ -3115,11 +3168,13 @@ function loadServicesList() {
                                     </div>
                                 </div>
                                 <div class="subcategory-actions">
-                                    <button class="admin-btn admin-btn-sm admin-btn-warning" onclick="editSubcategory('${categoryKey}', ${index})" title="Düzenle">
+                                    <button class="admin-btn admin-btn-sm admin-btn-warning" onclick="editSubcategory('${categoryKey}', ${index})" title="Alt Hizmet Düzenle">
                                         <i class="fas fa-edit"></i>
+                                        <span>Düzenle</span>
                                     </button>
-                                    <button class="admin-btn admin-btn-sm admin-btn-danger" onclick="deleteSubcategory('${categoryKey}', ${index})" title="Sil">
+                                    <button class="admin-btn admin-btn-sm admin-btn-danger" onclick="deleteSubcategory('${categoryKey}', ${index})" title="Alt Hizmet Sil">
                                         <i class="fas fa-trash"></i>
+                                        <span>Sil</span>
                                     </button>
                                 </div>
                             </div>
@@ -3311,10 +3366,34 @@ function loadStaffList() {
 
     const staffHTML = staff.map(member => {
         const role = member.specialty || 'Personel';
-        const status = member.status || 'pending';
         const accountStatus = member.accountCreated ? 'active' : 'pending';
         const statusText = accountStatus === 'active' ? 'Hesap Oluşturuldu' : 'Hesap Bekliyor';
         const statusClass = accountStatus === 'active' ? 'success' : 'warning';
+        const availabilitySummary = getAvailabilityInfo(member.id);
+        const phoneHref = member.phone ? `tel:${member.phone.replace(/[^+\d]/g, '')}` : null;
+        const infoItems = [
+            { icon: 'fas fa-briefcase', label: 'Uzmanlık', value: role },
+            { icon: 'fas fa-phone', label: 'Telefon', value: member.phone || 'Tanımlı değil', href: phoneHref },
+            { icon: 'fas fa-envelope', label: 'E-posta', value: member.email || 'Tanımlı değil', href: member.email ? `mailto:${member.email}` : null },
+            { icon: 'fas fa-money-bill-wave', label: 'Maaş', value: member.salary ? `${member.salary}₺` : 'Belirtilmemiş' },
+            { icon: availabilitySummary.statusIcon, label: 'Müsaitlik', value: availabilitySummary.statusText },
+            { icon: 'fas fa-calendar-week', label: 'Çalışma Günleri', value: availabilitySummary.daysText },
+            { icon: 'fas fa-clock', label: 'Çalışma Saatleri', value: availabilitySummary.hoursText }
+        ];
+
+        const metaHTML = infoItems.map(item => {
+            const fallback = item.value && item.value !== '' ? item.value : 'Tanımlı değil';
+            const isEmpty = fallback === 'Tanımlı değil' || fallback === 'Belirtilmemiş';
+            const valueMarkup = item.href && !isEmpty
+                ? `<a class="staff-meta-link" href="${item.href}">${fallback}</a>`
+                : fallback;
+            return `
+                <div class="staff-meta-item${isEmpty ? ' empty' : ''}">
+                    <span class="staff-meta-label"><i class="${item.icon}"></i>${item.label}</span>
+                    <span class="staff-meta-value">${valueMarkup}</span>
+                </div>
+            `;
+        }).join('');
         
         return `
         <div class="staff-card-row">
@@ -3329,16 +3408,17 @@ function loadStaffList() {
                             ${statusText}
                         </span>
                     </div>
-                    <div class="staff-info">
-                        <p><i class="fas fa-phone"></i> ${member.phone}</p>
-                        ${member.email ? `<p><i class="fas fa-envelope"></i> ${member.email}</p>` : ''}
-                        ${member.salary ? `<p><i class="fas fa-money-bill-wave"></i> ${member.salary}₺</p>` : ''}
+                    <div class="staff-meta-grid">
+                        ${metaHTML}
                     </div>
                 </div>
             </div>
             <div class="staff-right">
                 <button onclick="editStaff(${member.id})" class="admin-btn admin-btn-sm admin-btn-primary" title="Düzenle">
                     <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="showStaffDailyAvailability(${member.id})" class="admin-btn admin-btn-sm admin-btn-info" title="Müsait Saatler">
+                    <i class="fas fa-calendar-day"></i>
                 </button>
                 ${accountStatus === 'pending' ? `
                     <button onclick="sendStaffInvite(${member.id})" class="admin-btn admin-btn-sm admin-btn-success" title="Davet Gönder">
@@ -4269,29 +4349,30 @@ function addCustomerIfNew(name, phone) {
 
 // Reset forms
 function resetAppointmentForm() {
-    document.getElementById('subcategory-group').style.display = 'none';
-    document.getElementById('staff-group').style.display = 'none';
-    document.getElementById('customer-suggestions').style.display = 'none';
+    const subcategoryGroup = document.getElementById('subcategory-group');
+    if (subcategoryGroup) {
+        subcategoryGroup.style.display = 'none';
+    }
+    const staffGroup = document.getElementById('staff-group');
+    if (staffGroup) {
+        staffGroup.style.display = 'none';
+    }
+    const customerSuggestions = document.getElementById('customer-suggestions');
+    if (customerSuggestions) {
+        customerSuggestions.style.display = 'none';
+    }
     
     // Reset hidden inputs
-    document.getElementById('service-category').value = '';
-    document.getElementById('service-subcategory').value = '';
-    document.getElementById('service-name').value = '';
-    document.getElementById('service-price').value = '';
-    document.getElementById('service-duration').value = '';
+    ['service-category', 'service-subcategory', 'service-name', 'service-price', 'service-duration', 'staff', 'time']
+        .forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.value = '';
+            }
+        });
     
-    // Reset service category cards selection
-    document.querySelectorAll('.service-category-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Reset subcategory cards selection
-    document.querySelectorAll('.subcategory-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Reset staff cards selection
-    document.querySelectorAll('.staff-card').forEach(card => {
+    // Clear selected states
+    document.querySelectorAll('.service-category-card.selected, .subcategory-card.selected, .staff-card.selected, .time-slot.selected').forEach(card => {
         card.classList.remove('selected');
     });
 }
@@ -4507,28 +4588,64 @@ function showAddServiceModal() {
     document.getElementById('addServiceForm').addEventListener('submit', handleAddServiceSubmit);
 }
 
+function renderEditServiceCategoriesList() {
+    const container = document.querySelector('#editServiceModal .service-categories-list');
+    if (!container) return;
+    const entries = Object.entries(serviceCategories);
+    const listHTML = entries.map(([categoryKey, category]) => {
+        const count = Array.isArray(category.subcategories) ? category.subcategories.length : 0;
+        const iconClass = category.icon || 'fas fa-spa';
+        const topSubcategories = (category.subcategories || []).slice(0, 3);
+        const moreCount = Math.max(0, count - topSubcategories.length);
+        const subcategoryPreview = count > 0
+            ? `
+                <div class="sub-pill-row">
+                    ${topSubcategories.map(sub => `<span class="sub-pill" title="${sub.name}">${sub.name}</span>`).join('')}
+                    ${moreCount > 0 ? `<span class="sub-pill more">+${moreCount} daha</span>` : ''}
+                </div>
+            `
+            : `<p class="no-subservices">Henüz alt hizmet yok</p>`;
+        return `
+            <div class="edit-category-item">
+                <div class="edit-category-main">
+                    <div class="category-icon accent"><i class="${iconClass}"></i></div>
+                    <div class="category-text">
+                        <h4>${category.name}</h4>
+                        <div class="category-meta">
+                            <span class="meta-pill"><i class="fas fa-layer-group"></i>${count} alt hizmet</span>
+                        </div>
+                        ${subcategoryPreview}
+                    </div>
+                </div>
+                <div class="category-actions">
+                    <button class="admin-btn admin-btn-sm admin-btn-primary" onclick="editCategoryDetails('${categoryKey}')">
+                        <i class="fas fa-edit"></i>
+                        Düzenle
+                    </button>
+                    <button class="admin-btn admin-btn-sm admin-btn-success" onclick="addSubcategory('${categoryKey}')">
+                        <i class="fas fa-plus"></i>
+                        Alt Hizmet
+                    </button>
+                    <button class="admin-btn admin-btn-sm admin-btn-danger" onclick="deleteServiceCategory('${categoryKey}')">
+                        <i class="fas fa-trash"></i>
+                        Sil
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    container.innerHTML = listHTML || `
+        <div class="empty-state">
+            <i class="fas fa-spa"></i>
+            <h3>Henüz hizmet kategorisi yok</h3>
+        </div>`;
+}
+
 function showEditServiceModal() {
     const modalHTML = `
         <div class="service-edit-form">
             <h3>Hizmet Düzenle</h3>
-            <div class="service-categories-list">
-                ${Object.keys(serviceCategories).map(categoryKey => {
-                    const category = serviceCategories[categoryKey];
-                    return `
-                        <div class="edit-category-item">
-                            <h4>${category.name}</h4>
-                            <div class="category-actions">
-                                <button class="admin-btn admin-btn-sm admin-btn-primary" onclick="editCategoryDetails('${categoryKey}')">
-                                    <i class="fas fa-edit"></i> Düzenle
-                                </button>
-                                <button class="admin-btn admin-btn-sm admin-btn-success" onclick="addSubcategory('${categoryKey}')">
-                                    <i class="fas fa-plus"></i> Alt Hizmet Ekle
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
+            <div class="service-categories-list"></div>
         </div>
     `;
     
@@ -4544,6 +4661,7 @@ function showEditServiceModal() {
     
     document.body.appendChild(modal);
     modal.style.display = 'block';
+    renderEditServiceCategoriesList();
 }
 
 // Handle add service form submission
@@ -4860,6 +4978,10 @@ function editCategoryDetails(categoryKey) {
                             <i class="fas fa-palette"></i> İkon Seç
                         </button>
                     </div>
+                    <div id="selectedIconPreview" style="margin-top: 10px; ${category.icon ? '' : 'display: none;'}">
+                        <span>Seçilen İkon: </span>
+                        <i id="previewIcon" class="${category.icon}" style="font-size: 1.2rem; margin-left: 5px;"></i>
+                    </div>
                 </div>
                 <button type="submit" class="btn-submit">Güncelle</button>
             </form>
@@ -4883,9 +5005,19 @@ function editCategoryDetails(categoryKey) {
         e.preventDefault();
         const formData = new FormData(e.target);
         
+        const name = formData.get('categoryName').trim();
+        const icon = formData.get('categoryIcon').trim();
+
+        // Prevent duplicate names (case-insensitive) across other categories
+        const dup = Object.entries(serviceCategories).some(([key, cat]) => key !== categoryKey && cat.name.trim().toLowerCase() === name.toLowerCase());
+        if (dup) {
+            alert('Bu kategori adı zaten kullanılıyor. Lütfen farklı bir ad girin.');
+            return;
+        }
+
         const updatedCategory = {
-            name: formData.get('categoryName').trim(),
-            icon: formData.get('categoryIcon').trim(),
+            name,
+            icon,
             subcategories: serviceCategories[categoryKey].subcategories
         };
         
@@ -4901,6 +5033,10 @@ function editCategoryDetails(categoryKey) {
             
             closeModal('editCategoryModal');
             loadServicesList();
+            // If the bulk edit modal is open, refresh its list
+            if (document.getElementById('editServiceModal')) {
+                renderEditServiceCategoriesList();
+            }
             alert('Kategori başarıyla güncellendi!');
         } catch (error) {
             console.error('Error updating category:', error);
@@ -4955,6 +5091,13 @@ function addSubcategory(categoryKey) {
             duration: parseInt(formData.get('subcategoryDuration'))
         };
         
+        // Prevent duplicate subcategory name within the category (case-insensitive)
+        const exists = (serviceCategories[categoryKey].subcategories || []).some(sub => (sub.name || '').trim().toLowerCase() === newSubcategory.name.toLowerCase());
+        if (exists) {
+            alert('Bu alt hizmet adı zaten mevcut. Lütfen farklı bir ad kullanın.');
+            return;
+        }
+
         try {
             // Add to local data
             serviceCategories[categoryKey].subcategories.push(newSubcategory);
@@ -4967,6 +5110,9 @@ function addSubcategory(categoryKey) {
             
             closeModal('addSubcategoryModal');
             loadServicesList();
+            if (document.getElementById('editServiceModal')) {
+                renderEditServiceCategoriesList();
+            }
             
             alert('Alt hizmet başarıyla eklendi!');
         } catch (error) {
@@ -4995,6 +5141,10 @@ async function deleteServiceCategory(categoryKey) {
             localStorage.setItem('serviceCategories', JSON.stringify(serviceCategories));
             
             loadServicesList();
+            // Refresh edit modal list if open
+            if (document.getElementById('editServiceModal')) {
+                renderEditServiceCategoriesList();
+            }
             alert('Kategori başarıyla silindi!');
         } catch (error) {
             console.error('Error deleting service category:', error);
@@ -5277,6 +5427,13 @@ function saveStaffAccounts() {
 function saveStaffAvailability() {
     localStorage.setItem('staffAvailability', JSON.stringify(staffAvailability));
     saveToFirebase('staffAvailability', staffAvailability);
+    // Refresh staff list if visible
+    try {
+        const list = document.getElementById('staff-list');
+        if (list) {
+            loadStaffList();
+        }
+    } catch (e) { /* ignore */ }
 }
 
 function saveInvoices() {
@@ -5392,6 +5549,178 @@ function getDayName(day) {
         'sunday': 'Pazar'
     };
     return days[day] || day;
+}
+
+// Short day name helper for compact display in admin staff list
+function getDayShortName(day) {
+    const days = {
+        'monday': 'Pzt',
+        'tuesday': 'Sal',
+        'wednesday': 'Çar',
+        'thursday': 'Per',
+        'friday': 'Cum',
+        'saturday': 'Cmt',
+        'sunday': 'Paz'
+    };
+    return days[day] || day;
+}
+
+// Build availability summary for staff cards
+function getAvailabilityInfo(staffId) {
+    const fallback = {
+        statusText: 'Tanımlı değil',
+        statusIcon: 'fas fa-user-slash',
+        daysText: 'Tanımlı değil',
+        hoursText: 'Tanımlı değil',
+        daysList: []
+    };
+    try {
+        const availability = staffAvailability.find(a => a.staffId === staffId);
+        if (!availability) {
+            return fallback;
+        }
+
+        const statusText = availability.isActive ? 'Aktif' : 'Pasif';
+        const statusIcon = availability.isActive ? 'fas fa-toggle-on' : 'fas fa-toggle-off';
+        const daysList = Array.isArray(availability.workingDays) ? availability.workingDays.map(getDayShortName) : [];
+        const daysText = daysList.length ? daysList.join(', ') : 'Tanımlı değil';
+        const hasHours = availability.workingHours && availability.workingHours.start && availability.workingHours.end;
+        const hoursText = hasHours ? `${availability.workingHours.start} – ${availability.workingHours.end}` : 'Tanımlı değil';
+
+        return {
+            statusText,
+            statusIcon,
+            daysText,
+            hoursText,
+            daysList
+        };
+    } catch (e) {
+        console.warn('getAvailabilityInfo error:', e);
+        return fallback;
+    }
+}
+
+// Helpers to compute daily availability slots for admin view
+function timeToMinutes(t) {
+    const [h, m] = (t || '00:00').split(':').map(Number);
+    return h * 60 + m;
+}
+
+function minutesToTime(mins) {
+    const h = Math.floor(mins / 60).toString().padStart(2, '0');
+    const m = (mins % 60).toString().padStart(2, '0');
+    return `${h}:${m}`;
+}
+
+function getDayKeyFromDateStr(dateStr) {
+    // dateStr expected YYYY-MM-DD
+    const d = new Date(`${dateStr}T00:00:00`);
+    const keys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    return keys[d.getDay()];
+}
+
+function generateSlots(startTime, endTime, step = 30) {
+    const out = [];
+    let cur = timeToMinutes(startTime);
+    const end = timeToMinutes(endTime);
+    while (cur < end) {
+        out.push(minutesToTime(cur));
+        cur += step;
+    }
+    return out;
+}
+
+function getDailyAvailableSlots(staffId, dateStr) {
+    const availability = staffAvailability.find(a => a.staffId == staffId);
+    if (!availability || availability.isActive === false) return [];
+    if (Array.isArray(availability.offDays) && availability.offDays.includes(dateStr)) return [];
+    const dayKey = getDayKeyFromDateStr(dateStr);
+    if (!availability.workingDays || !availability.workingDays.includes(dayKey)) return [];
+    const start = availability.workingHours?.start || '09:00';
+    const end = availability.workingHours?.end || '18:00';
+    const slots = generateSlots(start, end, 30);
+    const bookedSet = new Set(
+        appointments
+            .filter(a => a && a.date === dateStr && (a.staffId == staffId || a.staff == staffId) && a.status !== 'cancelled')
+            .map(a => a.time)
+    );
+    return slots.map(t => ({ time: t, status: bookedSet.has(t) ? 'booked' : 'available' }));
+}
+
+function renderStaffDailyAvailability(staffId, dateStr) {
+    const container = document.getElementById('daily-availability-body');
+    if (!container) return;
+    const member = staff.find(s => s.id == staffId);
+    const slots = getDailyAvailableSlots(staffId, dateStr);
+    const dayKey = getDayKeyFromDateStr(dateStr);
+    const dayName = getDayName(dayKey);
+
+    if (!slots.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <h3>${member ? member.name : 'Personel'} için uygun saat yok</h3>
+                <p>${formatDate(dateStr)}</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="availability-header" style="margin-bottom: 0.75rem;">
+            <h4 style="margin:0; display:flex; align-items:center; gap:0.5rem">
+                <span>${member ? member.name : 'Personel'}</span>
+                <small style="font-weight:500; color:#6c757d">${formatDate(dateStr)} (${dayName})</small>
+            </h4>
+        </div>
+        <div class="time-slots">
+            ${slots.map(s => `
+                <div class="time-slot ${s.status === 'booked' ? 'unavailable' : 'available'}">${s.time}</div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function showStaffDailyAvailability(staffId) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'staffDailyAvailabilityModal';
+    modal.innerHTML = `
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('staffDailyAvailabilityModal')">&times;</span>
+            <div style="display:flex; align-items:center; justify-content: space-between; gap:1rem; margin-bottom:1rem;">
+                <h3 style="margin:0; display:flex; align-items:center; gap:0.5rem">
+                    <i class="fas fa-calendar-day"></i>
+                    Günlük Müsait Saatler
+                </h3>
+                <div class="form-group" style="margin:0;">
+                    <label style="margin-right:0.5rem; font-weight:600">Tarih</label>
+                    <input type="date" id="daily-availability-date" value="${dateStr}">
+                </div>
+            </div>
+            <div id="daily-availability-body"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+
+    // Initial render
+    renderStaffDailyAvailability(staffId, dateStr);
+
+    // Bind change
+    const dateInput = modal.querySelector('#daily-availability-date');
+    if (dateInput) {
+        dateInput.addEventListener('change', (e) => {
+            const val = e.target.value;
+            renderStaffDailyAvailability(staffId, val);
+        });
+    }
 }
 
 // Manuel randevu oluşturma
@@ -5574,6 +5903,7 @@ window.showAdminTab = showAdminTab;
 window.goToHomePage = goToHomePage;
 window.showStaffAvailabilityModal = showStaffAvailabilityModal;
 window.showStaffAppointmentsModal = showStaffAppointmentsModal;
+window.showStaffDailyAvailability = showStaffDailyAvailability;
 window.showManualAppointmentModal = showManualAppointmentModal;
 window.showInvoiceModal = showInvoiceModal;
 window.updateStaffAvailability = updateStaffAvailability;
@@ -5720,65 +6050,7 @@ function showStaffView() {
 
 // Go to home page from staff panel
 function goToHomePage() {
-    // Remove staff mode
-    document.body.classList.remove('staff-mode');
-    
-    // Hide staff panel
-    const staffPanel = document.getElementById('staff-panel');
-    if (staffPanel) {
-        staffPanel.style.display = 'none';
-    }
-    
-    // Show regular sections
-    document.querySelectorAll('section').forEach(section => {
-        if (section.id !== 'staff-panel' && section.id !== 'admin-panel') {
-            section.style.display = 'block';
-        }
-    });
-    
-    // Clear current user
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    
-    // Update navigation
-    updateUI();
-    
-    showSuccessMessage('Ana sayfaya dönüldü!');
-}
-
-// Global logout function
-function logout() {
-    // Check if in staff mode
-    if (document.body.classList.contains('staff-mode')) {
-        // Staff logout
-        document.body.classList.remove('staff-mode');
-        const staffPanel = document.getElementById('staff-panel');
-        if (staffPanel) {
-            staffPanel.style.display = 'none';
-        }
-    }
-    
-    // Check if in admin mode
-    if (document.getElementById('admin-panel') && document.getElementById('admin-panel').style.display !== 'none') {
-        // Admin logout
-        document.getElementById('admin-panel').style.display = 'none';
-    }
-    
-    // Show regular sections
-    document.querySelectorAll('section').forEach(section => {
-        if (section.id !== 'staff-panel' && section.id !== 'admin-panel') {
-            section.style.display = 'block';
-        }
-    });
-    
-    // Clear current user
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    
-    // Update navigation
-    updateUI();
-    
-    showSuccessMessage('Başarıyla çıkış yapıldı!');
+    logout('Ana sayfaya dönüldü!');
 }
 
 // Staff Tab Navigation
@@ -6020,13 +6292,32 @@ function loadStaffProfile() {
 
 // Toggle availability
 function toggleAvailability(element) {
-    element.classList.toggle('available');
-    element.classList.toggle('unavailable');
+    const isNowSelected = !element.classList.contains('selected');
+    element.classList.toggle('selected', isNowSelected);
+    element.classList.toggle('available', isNowSelected);
+    element.setAttribute('aria-pressed', isNowSelected);
+}
+
+function sortTimeValues(times) {
+    return times.slice().sort((a, b) => {
+        const [ah, am] = a.split(':').map(Number);
+        const [bh, bm] = b.split(':').map(Number);
+        return ah === bh ? am - bm : ah - bh;
+    });
+}
+
+function addMinutesToTime(time, minutesToAdd) {
+    const [hour, minute] = time.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hour, minute + minutesToAdd, 0, 0);
+    const h = date.getHours().toString().padStart(2, '0');
+    const m = date.getMinutes().toString().padStart(2, '0');
+    return `${h}:${m}`;
 }
 
 // Save availability
 function saveAvailability() {
-    const timeSlots = document.querySelectorAll('.time-slot');
+    const timeSlots = document.querySelectorAll('.availability-calendar .time-slot');
     const availability = [];
     
     timeSlots.forEach(slot => {
@@ -6038,13 +6329,52 @@ function saveAvailability() {
         }
     });
     
-    // Update staff availability
     const staffMember = staff.find(s => s.id === currentUser.id);
-    if (staffMember) {
-        staffMember.availability = availability;
-        localStorage.setItem('staff', JSON.stringify(staff));
-        showSuccessMessage('Müsaitlik durumunuz kaydedildi!');
+    if (!staffMember) {
+        showErrorMessage('Personel bilgilerine ulaşılamadı.');
+        return;
     }
+    
+    staffMember.availability = availability;
+    localStorage.setItem('staff', JSON.stringify(staff));
+    
+    // Sync with admin view availability structure
+    let availabilityRecord = staffAvailability.find(a => a.staffId === staffMember.id);
+    if (!availabilityRecord) {
+        availabilityRecord = {
+            staffId: staffMember.id,
+            workingDays: [],
+            workingHours: { start: '09:00', end: '18:00' },
+            offDays: [],
+            isActive: true,
+            slots: {}
+        };
+        staffAvailability.push(availabilityRecord);
+    }
+    
+    const slotsByDay = availability.reduce((acc, slot) => {
+        if (!acc[slot.day]) {
+            acc[slot.day] = [];
+        }
+        acc[slot.day].push(slot.time);
+        return acc;
+    }, {});
+    
+    Object.keys(slotsByDay).forEach(day => {
+        slotsByDay[day] = sortTimeValues(slotsByDay[day]);
+    });
+    
+    const allTimes = sortTimeValues(availability.map(item => item.time));
+    availabilityRecord.slots = slotsByDay;
+    availabilityRecord.workingDays = Object.keys(slotsByDay);
+    availabilityRecord.isActive = availabilityRecord.workingDays.length > 0;
+    availabilityRecord.workingHours = allTimes.length > 0
+        ? { start: allTimes[0], end: addMinutesToTime(allTimes[allTimes.length - 1], 60) }
+        : { start: '09:00', end: '18:00' };
+    
+    saveStaffAvailability();
+    loadStaffAvailability();
+    showSuccessMessage('Müsaitlik durumunuz kaydedildi!');
 }
 
 // Confirm appointment
